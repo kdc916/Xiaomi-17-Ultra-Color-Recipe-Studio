@@ -1,0 +1,1419 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+<title>Xiaomi 17 Ultra Color Match Tool Ultimate Studio</title>
+<style>
+:root{
+  --bg:#09111f; --panel:#101a2f; --line:#25365f; --text:#eef4ff; --muted:#98a7c9;
+  --brand:#79d7ff; --brand2:#8effc1; --chip:#0f172b; --shadow:0 16px 40px rgba(0,0,0,.28); --radius:20px;
+  --good:#7ef0b6; --warn:#ffd27c; --bad:#ff9c9c; --active:#1a2d53;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0;background:radial-gradient(circle at top,#10203f 0%,#09111f 45%,#050b14 100%);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans KR",system-ui,sans-serif}
+body{min-height:100vh}
+.wrap{max-width:1440px;margin:0 auto;padding:16px}
+.hero,.grid,.result-grid,.analysis-grid{display:grid;gap:14px}
+.hero{grid-template-columns:1.18fr .82fr;margin-bottom:14px}
+.grid{grid-template-columns:minmax(560px, 1.05fr) minmax(520px, .95fr)}
+.result-grid,.analysis-grid{grid-template-columns:1fr 1fr;margin-top:10px}
+.card{background:linear-gradient(180deg,rgba(255,255,255,.03),rgba(255,255,255,.01));border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow)}
+.panel,.hero-main,.hero-side{padding:16px}
+h1{margin:0 0 8px;font-size:30px;line-height:1.1;letter-spacing:-.02em}
+h3{margin:0 0 10px}
+.sub,.footer-note{color:var(--muted);font-size:14px;line-height:1.65}
+.footer-note{font-size:12px;margin-top:8px}
+.badge-row,.chips,.toolbar,.palette-row,.mode-tabs,.selection-actions{display:flex;flex-wrap:wrap;gap:8px}
+.badge,.chip,.mode-tab{padding:8px 12px;border:1px solid var(--line);border-radius:999px;background:rgba(255,255,255,.03);font-size:12px;color:#d7e8ff}
+.chip{background:var(--chip)}
+.mode-tab{cursor:pointer}
+.mode-tab.active{background:linear-gradient(180deg,var(--brand),#58c6ff);color:#06101d;border-color:transparent;font-weight:800}
+.section-title{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0 0 10px}
+.section-title h2{margin:0}
+.tiny{font-size:12px;color:var(--muted)}
+.upload-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.drop{position:relative;overflow:hidden;min-height:220px;border:1px dashed #3c548f;border-radius:18px;background:linear-gradient(180deg, rgba(121,215,255,.08), rgba(121,215,255,.03));display:flex;align-items:center;justify-content:center;padding:16px;cursor:pointer}
+.drop.drag{border-color:var(--brand);box-shadow:0 0 0 3px rgba(121,215,255,.14) inset}
+.drop input{position:absolute;inset:0;opacity:0;cursor:pointer}
+.drop-inner{text-align:center;max-width:270px}
+.drop strong{display:block;font-size:16px;margin-bottom:8px}
+.drop p{margin:0;color:var(--muted);font-size:13px;line-height:1.6}
+.preview-frame{position:absolute;inset:0;padding:14px;display:none}
+.preview-frame.active{display:block}
+.preview-frame canvas{width:100%;height:100%;border-radius:12px;background:#040812}
+button{appearance:none;border:none;border-radius:14px;padding:12px 16px;font-weight:700;font-size:14px;cursor:pointer;color:#08111c;background:linear-gradient(180deg,var(--brand),#58c6ff);box-shadow:0 10px 24px rgba(42,170,224,.2)}
+button.secondary{background:#14203b;color:var(--text);border:1px solid var(--line);box-shadow:none}
+button.ghost{background:transparent;color:var(--text);border:1px solid var(--line);box-shadow:none}
+button:disabled{opacity:.55;cursor:not-allowed}
+.control-grid,.stats,.range-grid,.mini-grid{display:grid;gap:10px}
+.control-grid{grid-template-columns:1fr 1fr 1fr}
+.stats{grid-template-columns:repeat(3,1fr)}
+.range-grid{grid-template-columns:repeat(2,1fr)}
+.mini-grid{grid-template-columns:1fr 1fr}
+.field,.stat,.result-card,.range-card,.preview-wrap,.candidate-card,.preset-item,.apply-card{padding:14px;border:1px solid var(--line);border-radius:16px;background:rgba(255,255,255,.025)}
+.field label,.stat .k{display:block;font-size:12px;color:var(--muted);margin-bottom:8px}
+.field select,.field input,.field textarea{font:inherit}
+.field select,.field textarea,.field input[type="text"]{width:100%;border:1px solid var(--line);border-radius:12px;background:#0b1325;color:var(--text);padding:10px 12px}
+.field textarea{min-height:72px;resize:vertical}
+.field.toggle{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.field.toggle label{margin:0}
+.stat .v{font-size:22px;font-weight:800;letter-spacing:-.03em}
+.kv{display:grid;grid-template-columns:130px 1fr;gap:10px;align-items:center;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.06)}
+.kv:last-child{border-bottom:none}
+.kv .k{font-size:13px;color:var(--muted)} .kv .v{font-size:14px;font-weight:700}
+.bar{height:10px;border-radius:999px;background:#0a1324;border:1px solid var(--line);overflow:hidden}
+.bar>span{display:block;height:100%;background:linear-gradient(90deg,var(--brand),var(--brand2));width:50%}
+.mono{white-space:pre-wrap;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12px;line-height:1.55;color:#dff8ff;background:#0b1325;border:1px solid var(--line);border-radius:16px;padding:14px;min-height:180px}
+.tips{margin:0;padding-left:18px;color:#dbe8ff}.tips li{margin:8px 0;line-height:1.55}
+.compare-stage{position:relative;width:100%;aspect-ratio:16/10;background:#02060f;border-radius:14px;overflow:hidden}
+.compare-stage canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+.compare-stage .applied-layer{clip-path:inset(0 0 0 50%)}
+.compare-divider{position:absolute;top:0;bottom:0;width:2px;background:#fff;left:50%;transform:translateX(-50%);box-shadow:0 0 0 1px rgba(0,0,0,.2),0 0 16px rgba(255,255,255,.22)}
+.compare-handle{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:34px;height:34px;border-radius:50%;background:#fff;color:#08111c;display:flex;align-items:center;justify-content:center;font-weight:900;box-shadow:0 8px 24px rgba(0,0,0,.25)}
+.compare-labels{display:flex;justify-content:space-between;gap:10px;margin-bottom:8px;font-size:12px;color:var(--muted)}
+.priority-item{padding:12px;border:1px solid var(--line);border-radius:14px;background:#0d1528;margin-bottom:10px}
+.priority-top{display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:8px}
+.priority-score{font-size:12px;color:var(--good);font-weight:800}
+.priority-reason{font-size:12px;color:var(--muted);line-height:1.5}
+.palette-swatch{width:42px;height:42px;border-radius:12px;border:1px solid rgba(255,255,255,.12)}
+.palette-meta{font-size:12px;color:var(--muted)}
+.good{color:var(--good)} .warn{color:var(--warn)} .bad{color:var(--bad)}
+.hidden{display:none !important}
+.pro-only.hidden{display:none !important}
+.candidate-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:10px}
+.candidate-card{cursor:pointer;transition:.18s transform,.18s border-color,.18s background}
+.candidate-card:hover{transform:translateY(-2px);border-color:#4e6dba}
+.candidate-card.active{border-color:var(--brand);background:rgba(121,215,255,.09);box-shadow:0 0 0 2px rgba(121,215,255,.15) inset}
+.candidate-thumb{position:relative;width:100%;aspect-ratio:1/1;border-radius:12px;overflow:hidden;background:#030812}
+.candidate-thumb canvas{width:100%;height:100%;display:block}
+.candidate-title{font-size:13px;font-weight:800;margin-top:8px}
+.candidate-sub{font-size:11px;color:var(--muted);margin-top:4px}
+.live-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.live-card{padding:12px;border:1px solid var(--line);border-radius:14px;background:#0d1528}
+.live-top{display:flex;justify-content:space-between;gap:10px;font-size:13px;margin-bottom:8px}
+.live-top strong{font-size:14px}
+.live-delta{font-size:11px;color:var(--muted)}
+.live-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.live-actions button{padding:10px 12px;font-size:12px}
+.apply-list{display:grid;gap:10px}
+.apply-step{display:flex;gap:12px;align-items:flex-start;padding:12px;border:1px solid var(--line);border-radius:14px;background:#0d1528}
+.apply-num{width:26px;height:26px;flex:0 0 26px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:#163058;font-weight:800;color:#bfe8ff}
+.preset-list{display:grid;gap:10px;max-height:420px;overflow:auto}
+
+.inline-preset-wrap{margin-top:10px;padding-top:10px;border-top:1px solid rgba(255,255,255,.08)}
+.inline-preset-scroller{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(240px,1fr);gap:10px;overflow:auto;padding-bottom:4px;scroll-snap-type:x proximity}
+.inline-preset-scroller .preset-item{scroll-snap-align:start;padding:12px}
+.inline-preset-scroller .preset-meta{line-height:1.45}
+.inline-preset-scroller .tiny{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.inline-preset-scroller .preset-actions{margin-top:8px}
+#builtinPresetPanel{display:none !important}
+.hero-side .tips{margin-top:10px}
+.sticky-compare{top:10px}
+@media (max-width:900px){
+  .inline-preset-scroller{grid-auto-columns:85%}
+}
+
+.preset-head{display:flex;justify-content:space-between;gap:10px;align-items:center}
+.preset-name{font-size:14px;font-weight:800}
+.preset-meta{font-size:11px;color:var(--muted);margin-top:4px}
+.preset-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.preset-actions button{padding:8px 10px;font-size:12px}
+.lock-badge{padding:6px 10px;border-radius:999px;background:#17324d;color:#c2e8ff;border:1px solid rgba(121,215,255,.25);font-size:11px}
+.preview-live-wrap{margin-top:16px;padding-top:16px;border-top:1px solid rgba(255,255,255,.08)}
+.live-focus{scroll-margin-top:20px}
+.sticky-compare{position:sticky;top:14px}
+.live-slider{-webkit-appearance:none;appearance:none;height:8px;border-radius:999px;background:linear-gradient(90deg,#16345c,#254e83);outline:none;border:1px solid rgba(121,215,255,.18)}
+.live-slider::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:22px;height:22px;border-radius:50%;background:linear-gradient(180deg,var(--brand),#58c6ff);border:2px solid #fff;box-shadow:0 4px 16px rgba(121,215,255,.35);cursor:grab}
+.live-slider::-moz-range-thumb{width:22px;height:22px;border-radius:50%;background:linear-gradient(180deg,var(--brand),#58c6ff);border:2px solid #fff;box-shadow:0 4px 16px rgba(121,215,255,.35);cursor:grab}
+#builtinPresetPanel{margin-top:14px}\n#builtinPresetPanel .preset-list{max-height:340px;overflow:auto}
+details.accordion{border:1px solid var(--line);border-radius:16px;background:rgba(255,255,255,.02);margin-top:14px;overflow:hidden}
+details.accordion summary{list-style:none;cursor:pointer;padding:14px 16px;font-weight:800;display:flex;align-items:center;justify-content:space-between;gap:12px}
+details.accordion summary::-webkit-details-marker{display:none}
+details.accordion .accordion-body{padding:0 16px 16px}
+details.accordion .tiny{margin-left:auto}
+details.accordion summary::after{content:'＋';font-size:18px;line-height:1;color:var(--muted)}
+details.accordion[open] summary::after{content:'－'}
+.loading-overlay{position:fixed;inset:0;background:rgba(4,9,16,.72);backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center;z-index:1000}
+.loading-overlay.active{display:flex}
+.loading-card{width:min(420px,92vw);padding:22px;border-radius:20px;background:#0d162a;border:1px solid var(--line);box-shadow:var(--shadow)}
+.spinner{width:28px;height:28px;border-radius:50%;border:3px solid rgba(255,255,255,.16);border-top-color:var(--brand);animation:spin .9s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.progress{height:10px;border-radius:999px;background:#08111f;border:1px solid var(--line);overflow:hidden;margin-top:12px}
+.progress > span{display:block;height:100%;width:12%;background:linear-gradient(90deg,var(--brand),var(--brand2));transition:width .18s ease}
+.loading-row{display:flex;align-items:center;gap:12px}
+.loading-step{font-size:13px;color:#dcecff;margin-top:12px}
+@media (max-width:1180px){.hero,.grid,.result-grid,.analysis-grid{grid-template-columns:1fr}.candidate-grid{grid-template-columns:repeat(3,1fr)}}
+@media (max-width:760px){.wrap{padding:14px}.upload-grid,.range-grid,.stats,.control-grid,.mini-grid,.candidate-grid,.live-grid{grid-template-columns:1fr}h1{font-size:24px}.kv{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="loading-overlay" id="loadingOverlay">
+  <div class="loading-card">
+    <div class="loading-row"><div class="spinner"></div><div><div style="font-weight:800">분석 중...</div><div class="tiny">고해상도 이미지일수록 조금 더 걸릴 수 있습니다.</div></div></div>
+    <div class="progress"><span id="loadingBar"></span></div>
+    <div class="loading-step" id="loadingStep">이미지 준비 중</div>
+  </div>
+</div>
+
+<div class="wrap">
+  <section class="hero">
+    <div class="card hero-main">
+      <h1>Xiaomi 17 Ultra Color Match Tool Ultimate Studio</h1>
+      <div class="sub">
+        원하는 색감 이미지를 올리면, 샤오미 17 울트라에서 가까운 결과를 노릴 수 있도록 <b>Leica 스타일(Authentic / Vibrant)</b>, <b>필터</b>, 그리고 <b>차가움/따뜻함 + 청록↔자홍 + 채도 + 대비 + 선명도 + EV</b>를 추정합니다.<br>
+        이번 버전은 <b>간편/전문가 모드</b>, <b>추천 썸네일 5종</b>, <b>실시간 수동 튜닝</b>, <b>프리셋 저장/즐겨찾기</b>, <b>적용 순서 카드</b>, <b>신뢰도와 경고</b>까지 포함한 실전형 통합판입니다.
+      </div>
+      <div class="badge-row">
+        <div class="badge">간편 / 전문가 모드</div>
+        <div class="badge">추천 썸네일 5종</div>
+        <div class="badge">Live Tweak</div>
+        <div class="badge">프리셋 저장/즐겨찾기</div>
+        <div class="badge">AI+ 분석</div>
+      </div>
+    </div>
+    <div class="card hero-side">
+      <div class="section-title"><h2>작업 모드</h2></div>
+      <div class="mode-tabs">
+        <div class="mode-tab active" id="simpleModeBtn">간편 모드</div>
+        <div class="mode-tab" id="proModeBtn">전문가 모드</div>
+      </div>
+      <ul class="tips" style="margin-top:14px">
+        <li><b>간편 모드</b>: 추천 스타일/필터, 적용 순서, Live Tweak 중심</li>
+        <li><b>전문가 모드</b>: 필터 우선순위, AI+ 상세 분석, 프리셋 관리까지 표시</li>
+        <li>원본 기준 조합을 모르면 <b>Leica Authentic + Original</b>로 시작하는 것이 가장 안전합니다.</li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="grid">
+    <div class="card panel">
+      <div class="section-title"><h2>이미지 입력</h2><div class="tiny">JPG / PNG / WebP 권장</div></div>
+      <div class="upload-grid">
+        <label class="drop" id="targetDrop">
+          <input type="file" id="targetInput" accept="image/*">
+          <div class="drop-inner" id="targetPlaceholder">
+            <strong>타겟 이미지 업로드</strong>
+            <p>원하는 색감의 사진 1장을 올리세요.<br>이 이미지 기준으로 Xiaomi 17 Ultra 추천값을 생성합니다.</p>
+          </div>
+          <div class="preview-frame" id="targetPreviewWrap"><canvas id="targetPreview"></canvas></div>
+        </label>
+        <label class="drop" id="sourceDrop">
+          <input type="file" id="sourceInput" accept="image/*">
+          <div class="drop-inner" id="sourcePlaceholder">
+            <strong>샤오미 원본 테스트 이미지</strong>
+            <p>내 폰으로 찍은 원본 컷을 넣으면<br>추천값 적용 프리뷰를 슬라이더 비교로 보여줍니다.</p>
+          </div>
+          <div class="preview-frame" id="sourcePreviewWrap"><canvas id="sourcePreview"></canvas></div>
+        </label>
+      </div>
+
+      <div class="control-grid">
+        <div class="field">
+          <label for="baselineStyle">원본 기준 Leica 스타일</label>
+          <select id="baselineStyle">
+            <option value="Leica Authentic" selected>Leica Authentic</option>
+            <option value="Leica Vibrant">Leica Vibrant</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="baselineFilter">원본 기준 필터</label>
+          <select id="baselineFilter">
+            <option value="Original" selected>Original</option>
+            <option value="Positive">Positive</option>
+            <option value="Negative">Negative</option>
+            <option value="VIV">VIV</option>
+            <option value="NAT">NAT</option>
+            <option value="Movie">Movie / Cinematic</option>
+            <option value="Gold Vibes">Gold Vibes</option>
+            <option value="Scarlet">Scarlet</option>
+            <option value="Teal Mist">Teal Mist</option>
+            <option value="Vivid">Vivid</option>
+            <option value="Monsoon">Monsoon</option>
+            <option value="Leica Natural">Leica Natural</option>
+            <option value="Leica Vivid">Leica Vivid</option>
+            <option value="Leica Sepia">Leica Sepia</option>
+            <option value="Leica Blue">Leica Blue</option>
+            <option value="Leica BW Natural">Leica BW Natural</option>
+            <option value="Leica BW HC">Leica BW HC</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="scenePriority">장면 우선 토글</label>
+          <select id="scenePriority">
+            <option value="balanced" selected>전체 균형 우선</option>
+            <option value="skin">피부 우선</option>
+            <option value="sky">하늘 우선</option>
+            <option value="mood">무드 우선</option>
+            <option value="accuracy">정확도 우선</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="footer-note">가장 무난한 기준 컷은 <b>Leica Authentic + Original + AWB + EV 0 + 채도/대비/선명도 0</b>입니다.</div>
+
+      <div class="toolbar">
+        <button id="analyzeBtn" disabled>색감 분석 시작</button>
+        <button id="clearBtn" class="secondary">초기화</button>
+        <button id="loadDemoBtn" class="ghost">데모 타겟 생성</button>
+      </div>
+
+      <div class="section-title" style="margin-top:18px"><h2>타겟 분석 수치</h2><div class="tiny">분석 후 자동 갱신</div></div>
+      <div class="stats">
+        <div class="stat"><div class="k">평균 밝기</div><div class="v" id="statLuma">-</div></div>
+        <div class="stat"><div class="k">평균 채도</div><div class="v" id="statSat">-</div></div>
+        <div class="stat"><div class="k">명암 대비</div><div class="v" id="statContrast">-</div></div>
+        <div class="stat"><div class="k">색온도 방향</div><div class="v" id="statWarm">-</div></div>
+        <div class="stat"><div class="k">색 틴트 방향</div><div class="v" id="statTint">-</div></div>
+        <div class="stat"><div class="k">장면 추정</div><div class="v" id="statScene">-</div></div>
+      </div>
+
+      <div class="inline-preset-wrap">
+        <div class="section-title"><h2>내장 룩 프리셋</h2><div class="tiny">아래에서 바로 선택 → 프리뷰 즉시 반영</div></div>
+        <div class="inline-preset-scroller" id="builtinPresetListInline"></div>
+      </div>
+    
+
+      
+
+
+  
+    </div>
+
+    <div class="card panel sticky-compare">
+      <div class="section-title"><h2>적용 프리뷰</h2><div class="tiny">원본/적용 슬라이더 비교</div></div>
+      <div class="preview-wrap">
+        <div class="compare-labels"><span>원본</span><span>추천 적용</span></div>
+        <div class="compare-stage">
+          <canvas id="compareBaseCanvas"></canvas>
+          <canvas id="compareAppliedCanvas" class="applied-layer"></canvas>
+          <div class="compare-divider" id="compareDivider"></div>
+          <div class="compare-handle" id="compareHandle">↔</div>
+        </div>
+        <div style="margin-top:12px"><input type="range" id="compareSlider" min="0" max="100" value="50" style="width:100%"></div>
+      </div>
+      <div class="footer-note" id="previewNote">아직 샤오미 원본 테스트 이미지가 없습니다. 업로드 후 분석하면 한 화면 비교 프리뷰가 생성됩니다.</div>
+
+      <div class="preview-live-wrap live-focus" id="liveFocusArea">
+        <div class="section-title"><h2>추천 수치 '수동 튜닝' (Live Tweak)</h2><div class="tiny">슬라이더를 움직이면 위 프리뷰가 즉시 갱신됩니다.</div></div>
+        <div class="live-grid" id="liveGrid"></div>
+        <div class="live-actions">
+          <button id="resetToSelectedBtn" class="secondary">현재 선택안 기준으로 복귀</button>
+          <button id="resetToAIBtn" class="secondary">AI 1위 기준으로 복귀</button>
+          <button id="resetZeroBtn" class="ghost">모든 수치 0으로</button>
+        </div>
+      </div>
+
+      <div class="section-title" style="margin-top:18px"><h2>추천 썸네일 5종</h2><div class="tiny">클릭하면 메인 프리뷰와 Live Tweak 기준이 바뀝니다.</div></div>
+      <div class="candidate-grid" id="candidateGrid"></div>
+      <div class="selection-actions" style="margin-top:12px">
+        <span class="lock-badge" id="lockBadge">선택안 잠금: 해제</span>
+        <button id="lockSelectionBtn" class="secondary">현재 선택안 잠금</button>
+        <button id="unlockSelectionBtn" class="secondary">잠금 해제</button>
+        <button id="revertAISelectionBtn" class="ghost">AI 1위로 돌아가기</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="card panel" style="margin-top:18px">
+    <div class="section-title"><h2>추천 결과 / Live Tweak</h2><div class="toolbar" style="margin-top:0"><button id="copyTextBtn" class="secondary" disabled>텍스트 복사</button><button id="copyJsonBtn" class="secondary" disabled>JSON 복사</button><button id="downloadTxtBtn" class="secondary" disabled>TXT 저장</button></div></div>
+
+    <div class="result-grid">
+      <div class="result-card">
+        <h3>현재 선택안</h3>
+        <div class="chips" id="modeChips"></div>
+        <div style="margin-top:12px" id="modeDetail"></div>
+      </div>
+      <div class="result-card">
+        <h3>실제 카메라 적용 순서</h3>
+        <div class="apply-list" id="applyList"></div>
+      </div>
+    </div>
+
+    <div class="result-grid">
+      <div class="result-card">
+        <h3>변화량 / 신뢰도 / 경고</h3>
+        <div id="deltaDetail"></div>
+        <div style="margin-top:12px" id="warningDetail"></div>
+      </div>
+      <div class="result-card">
+        <h3>튜닝 팁</h3>
+        <ul class="tips">
+          <li>슬라이더를 움직일 때는 먼저 <b>채도 → 대비 → 따뜻함 → EV</b> 순으로 보정하는 편이 안정적입니다.</li>
+          <li>지금 선택된 썸네일 기준으로 미세 조정하다가 길을 잃으면 <b>현재 선택안 기준으로 복귀</b>를 누르세요.</li>
+          <li>아예 처음 AI 판단으로 돌아가고 싶으면 <b>AI 1위 기준으로 복귀</b>를 누르면 됩니다.</li>
+        </ul>
+      </div>
+    </div>
+
+    <details class="accordion pro-only hidden" id="proPriorityWrap">
+      <summary>전문가 분석 / 우선순위 <span class="tiny">필터 우선순위와 리포트</span></summary>
+      <div class="accordion-body">
+        <div class="result-grid" id="proPriorityRow">
+          <div class="result-card"><h3>필터 우선순위 Top 5</h3><div id="priorityList"></div></div>
+          <div class="result-card"><h3>분석 리포트</h3><div class="mono" id="reportBox">분석 전입니다.</div></div>
+        </div>
+      </div>
+    </details>
+
+    <details class="accordion pro-only hidden" id="proAnalysisWrap">
+      <summary>AI+ 디테일 분석 <span class="tiny">팔레트 / 광원 / 장면 해석</span></summary>
+      <div class="accordion-body">
+        <div class="analysis-grid" id="proAnalysisRow">
+          <div class="result-card"><h3>AI+ 디테일 분석</h3><div id="aiDetail"></div></div>
+          <div class="result-card"><h3>운용 팁</h3><ul class="tips" id="tipsList"></ul></div>
+        </div>
+      </div>
+    </details>
+  </section>
+
+
+  <details class="accordion card panel pro-only hidden" id="presetPanel" style="margin-top:18px">
+    <summary>저장 프리셋 / 즐겨찾기 <span class="tiny">브라우저 localStorage 저장</span></summary>
+    <div class="accordion-body">
+      <div class="mini-grid">
+        <div class="result-card">
+          <div class="field"><label for="presetName">프리셋 이름</label><input type="text" id="presetName" placeholder="예: 일본 레트로 인물" /></div>
+          <div class="field"><label for="presetMemo">프리셋 메모</label><textarea id="presetMemo" placeholder="예: 실내 웨딩 / 피부 우선 / Gold Vibes 기반"></textarea></div>
+          <div class="toolbar">
+            <button id="savePresetBtn">현재 선택안 저장</button>
+            <button id="saveFavoriteBtn" class="secondary">즐겨찾기로 저장</button>
+            <button id="clearPresetsBtn" class="ghost">전체 삭제</button>
+          </div>
+        </div>
+        <div class="result-card">
+          <div class="preset-list" id="presetList"></div>
+        </div>
+      </div>
+    </div>
+  </details>
+</div>
+
+<script>
+const FILTER_INFO = {
+  'Original':{desc:'가장 중립적인 출발점', temp:'neutral', mono:false},
+  'Positive':{desc:'따뜻하고 가벼운 생기', temp:'warm', mono:false},
+  'Negative':{desc:'절제형 채도와 필름풍 무드', temp:'cool', mono:false},
+  'VIV':{desc:'즉각적인 강색 표현', temp:'neutral', mono:false},
+  'NAT':{desc:'담백하고 현실적인 재현', temp:'neutral', mono:false},
+  'Movie':{desc:'저채도 시네마 무드', temp:'cool', mono:false},
+  'Gold Vibes':{desc:'황금빛 하이라이트와 따뜻한 에너지', temp:'warm', mono:false},
+  'Scarlet':{desc:'붉은 계열과 브라운 무드 강조', temp:'warm', mono:false},
+  'Teal Mist':{desc:'청록 안개와 공기감', temp:'cool', mono:false},
+  'Vivid':{desc:'전체 색 밀도 강화', temp:'neutral', mono:false},
+  'Monsoon':{desc:'차갑고 눅진한 분위기', temp:'cool', mono:false},
+  'Leica Natural':{desc:'담백한 Leica 계열', temp:'neutral', mono:false},
+  'Leica Vivid':{desc:'강조된 Leica 컬러', temp:'neutral', mono:false},
+  'Leica Sepia':{desc:'웜한 빈티지', temp:'warm', mono:false},
+  'Leica Blue':{desc:'블루톤 모노/사이아노타입 성향', temp:'cool', mono:true},
+  'Leica BW Natural':{desc:'부드러운 흑백', temp:'neutral', mono:true},
+  'Leica BW HC':{desc:'강한 콘트라스트 흑백', temp:'neutral', mono:true}
+};
+
+
+const BUILTIN_PRESETS = [
+  {
+    id:'vivo_x300pro_zeiss_clear',
+    group:'vivo / ZEISS',
+    name:'vivo X300 Pro · ZEISS Natural / Clear',
+    style:'Leica Authentic',
+    filter:'Leica Natural',
+    sliders:{warmCool:-2,tint:-1,saturation:-2,contrast:1,sharpness:0,exposure:0},
+    match:'높음',
+    sourceTone:'자연색, 균형형 대비, 깨끗한 피부와 투명감',
+    description:'ZEISS Natural Color / Natural Portrait 계열을 의식한 깨끗하고 정돈된 룩.',
+    compare:'샤오미에서 비교적 재현이 쉬운 편입니다. 과채도보다 정리된 색과 인물 안정감을 우선합니다.'
+  },
+  {
+    id:'fuji_provia',
+    group:'Fujifilm',
+    name:'Fujifilm PROVIA',
+    style:'Leica Authentic',
+    filter:'Original',
+    sliders:{warmCool:1,tint:0,saturation:1,contrast:0,sharpness:0,exposure:0},
+    match:'높음',
+    sourceTone:'메모리 컬러, 투명감, 기본형 표준 룩',
+    description:'PROVIA의 범용성과 투명한 기본 톤을 겨냥한 프리셋.',
+    compare:'샤오미 기본 컬러와 궁합이 좋아 시작점으로 쓰기 좋습니다.'
+  },
+  {
+    id:'fuji_astia',
+    group:'Fujifilm',
+    name:'Fujifilm ASTIA',
+    style:'Leica Authentic',
+    filter:'Positive',
+    sliders:{warmCool:2,tint:0,saturation:1,contrast:-1,sharpness:-1,exposure:0},
+    match:'중상',
+    sourceTone:'부드러운 인물, 화사하지만 과하지 않은 컬러',
+    description:'ASTIA의 부드럽고 우아한 인물 톤을 의식한 프리셋.',
+    compare:'피부 위주 장면에서 좋은 출발점입니다.'
+  },
+  {
+    id:'fuji_velvia',
+    group:'Fujifilm',
+    name:'Fujifilm Velvia',
+    style:'Leica Vibrant',
+    filter:'Leica Vivid',
+    sliders:{warmCool:1,tint:0,saturation:8,contrast:4,sharpness:1,exposure:-0.1},
+    match:'중상',
+    sourceTone:'고채도, 깊은 그림자, 풍경 강조',
+    description:'Velvia의 선명하고 강한 풍경 톤을 겨냥한 프리셋.',
+    compare:'샤오미에서 비슷한 임팩트는 가능하지만 과해지기 쉬워 채도 확인이 중요합니다.'
+  },
+  {
+    id:'fuji_classic_chrome',
+    group:'Fujifilm',
+    name:'Fujifilm Classic Chrome',
+    style:'Leica Authentic',
+    filter:'Movie',
+    sliders:{warmCool:-3,tint:-2,saturation:-5,contrast:2,sharpness:0,exposure:-0.1},
+    match:'중상',
+    sourceTone:'쿨 섀도, 억제된 마젠타, 잡지풍 저채도',
+    description:'Classic Chrome의 차분하고 서사적인 매거진 룩.',
+    compare:'샤오미에서는 Movie + 쿨 WB 방향이 잘 맞습니다.'
+  },
+  {
+    id:'fuji_classic_negative',
+    group:'Fujifilm',
+    name:'Fujifilm Classic Negative',
+    style:'Leica Authentic',
+    filter:'Negative',
+    sliders:{warmCool:-1,tint:-3,saturation:-2,contrast:4,sharpness:0,exposure:-0.2},
+    match:'중상',
+    sourceTone:'펀치 있는 대비, 청록 그림자, 로파이 스냅',
+    description:'Classic Negative의 소비자 필름풍 대비와 그림자 색감을 겨냥.',
+    compare:'완전 복제는 어렵지만 스냅 감성 방향은 꽤 가깝게 가져갈 수 있습니다.'
+  },
+  {
+    id:'fuji_reala_ace',
+    group:'Fujifilm',
+    name:'Fujifilm Reala Ace',
+    style:'Leica Authentic',
+    filter:'Leica Natural',
+    sliders:{warmCool:1,tint:0,saturation:-1,contrast:2,sharpness:0,exposure:0},
+    match:'높음',
+    sourceTone:'절제된 색, 깊은 그림자, 선명한 하이라이트',
+    description:'Reala Ace의 균형형 만능 네거티브 룩.',
+    compare:'샤오미에서 가장 무난하게 재현되는 후지 계열 중 하나입니다.'
+  },
+  {
+    id:'ricoh_gr_positive',
+    group:'RICOH GR',
+    name:'RICOH GR Positive Film',
+    style:'Leica Vibrant',
+    filter:'Positive',
+    sliders:{warmCool:2,tint:0,saturation:6,contrast:4,sharpness:1,exposure:-0.2},
+    match:'중상',
+    sourceTone:'슬라이드 필름풍, 높은 대비와 채도, 팝한 스냅',
+    description:'GR Positive Film의 컬러 팝과 스트리트 스냅 감성.',
+    compare:'샤오미에서 꽤 비슷한 에너지를 낼 수 있지만 피부는 쉽게 진해질 수 있습니다.'
+  },
+  {
+    id:'hasselblad_hncs',
+    group:'Hasselblad',
+    name:'Hasselblad HNCS',
+    style:'Leica Authentic',
+    filter:'Leica Natural',
+    sliders:{warmCool:0,tint:0,saturation:-2,contrast:0,sharpness:-1,exposure:0},
+    match:'중상',
+    sourceTone:'자연색, 부드러운 전환, 과장 없는 고급스러운 컬러',
+    description:'HNCS의 true-to-life와 부드러운 색 전이를 겨냥한 프리셋.',
+    compare:'샤오미에서 방향성은 재현되지만, 중형 특유의 미묘한 색 전이는 센서 특성상 완전 복제는 어렵습니다.'
+  }
+];
+
+const state = {
+  target:null,
+  source:null,
+  compare:50,
+  analysis:null,
+  ranking:[],
+  selectedCandidate:null,
+  aiTopCandidate:null,
+  currentPreviewCandidate:null,
+  lockedCandidateId:null,
+  liveAdjustments:null,
+  uiMode:'simple'
+};
+
+const els = {};
+function bindEls(){
+  [
+    'targetInput','sourceInput','targetDrop','sourceDrop','targetPlaceholder','sourcePlaceholder','targetPreviewWrap','sourcePreviewWrap','targetPreview','sourcePreview',
+    'analyzeBtn','clearBtn','loadDemoBtn','baselineStyle','baselineFilter','scenePriority',
+    'statLuma','statSat','statContrast','statWarm','statTint','statScene',
+    'compareBaseCanvas','compareAppliedCanvas','compareSlider','compareDivider','compareHandle','previewNote',
+    'candidateGrid','lockBadge','lockSelectionBtn','unlockSelectionBtn','revertAISelectionBtn',
+    'modeChips','modeDetail','applyList','liveGrid','deltaDetail','warningDetail','priorityList','reportBox','aiDetail','tipsList',
+    'copyTextBtn','copyJsonBtn','downloadTxtBtn',
+    'simpleModeBtn','proModeBtn','proPriorityWrap','proAnalysisWrap','proPriorityRow','proAnalysisRow','presetPanel',
+    'presetName','presetMemo','savePresetBtn','saveFavoriteBtn','clearPresetsBtn','presetList','builtinPresetList','builtinPresetListInline',
+    'loadingOverlay','loadingBar','loadingStep','resetToSelectedBtn','resetToAIBtn','resetZeroBtn'
+  ].forEach(id=>els[id]=document.getElementById(id));
+}
+bindEls();
+
+function clamp(v,min,max){return Math.max(min,Math.min(max,v));}
+function lerp(a,b,t){return a+(b-a)*t;}
+function round(v,n=0){const f=Math.pow(10,n);return Math.round(v*f)/f;}
+function cleanNumber(v,d=0){const n=Number(round(v,d).toFixed(d));return Object.is(n,-0)?0:n;}
+function formatSigned(v,d=0){const n=cleanNumber(v,d);return n>0?`+${n}`:`${n}`;}
+function pct(v){return `${Math.round(v*100)}%`;}
+function scoreToText(v,labels){if(v<0.33) return labels[0]; if(v<0.66) return labels[1]; return labels[2];}
+function uid(){return Math.random().toString(36).slice(2,10);}
+function rgbToHex(r,g,b){return '#'+[r,g,b].map(v=>Math.round(v).toString(16).padStart(2,'0')).join('');}
+function getBaseline(){return {style:els.baselineStyle.value, filter:els.baselineFilter.value};}
+function getPriorityMode(){return els.scenePriority.value;}
+function updateLoading(step, percent){
+  els.loadingStep.textContent = step;
+  els.loadingBar.style.width = `${percent}%`;
+}
+function showLoading(show=true){
+  els.loadingOverlay.classList.toggle('active', show);
+}
+function delayFrame(){return new Promise(r=>requestAnimationFrame(()=>r()));}
+
+function setupDrop(drop,input){
+  ['dragenter','dragover'].forEach(evt=>drop.addEventListener(evt,e=>{e.preventDefault();drop.classList.add('drag');}));
+  ['dragleave','drop'].forEach(evt=>drop.addEventListener(evt,e=>{e.preventDefault();drop.classList.remove('drag');}));
+  drop.addEventListener('drop',e=>{if(e.dataTransfer.files?.[0]){input.files=e.dataTransfer.files;input.dispatchEvent(new Event('change'));}});
+}
+async function loadImageFromFile(file){
+  return new Promise((resolve,reject)=>{
+    const reader=new FileReader();
+    reader.onload=()=>{
+      const img=new Image();
+      img.onload=()=>resolve(img);
+      img.onerror=reject;
+      img.src=reader.result;
+    };
+    reader.onerror=reject;
+    reader.readAsDataURL(file);
+  });
+}
+function drawContain(img,canvas,pad=0){
+  const ctx=canvas.getContext('2d');
+  const w=canvas.width=canvas.clientWidth*(window.devicePixelRatio||1);
+  const h=canvas.height=canvas.clientHeight*(window.devicePixelRatio||1);
+  ctx.clearRect(0,0,w,h); ctx.fillStyle='#040812'; ctx.fillRect(0,0,w,h);
+  const scale=Math.min((w-pad*2)/img.width,(h-pad*2)/img.height);
+  const dw=img.width*scale, dh=img.height*scale, dx=(w-dw)*.5, dy=(h-dh)*.5;
+  ctx.drawImage(img,dx,dy,dw,dh);
+}
+function imageToSampleCanvas(img,maxSide=520){
+  const canvas=document.createElement('canvas');
+  const scale=Math.min(1,maxSide/Math.max(img.width,img.height));
+  canvas.width=Math.max(8,Math.round(img.width*scale));
+  canvas.height=Math.max(8,Math.round(img.height*scale));
+  canvas.getContext('2d',{willReadFrequently:true}).drawImage(img,0,0,canvas.width,canvas.height);
+  return canvas;
+}
+function rgbToHsv(r,g,b){
+  const max=Math.max(r,g,b),min=Math.min(r,g,b),d=max-min; let h=0;
+  if(d!==0){
+    switch(max){case r:h=((g-b)/d)%6;break;case g:h=(b-r)/d+2;break;case b:h=(r-g)/d+4;break;}
+    h*=60; if(h<0)h+=360;
+  }
+  return {h,s:max===0?0:d/max,v:max};
+}
+
+function analyzeImage(img){
+  const canvas=imageToSampleCanvas(img,580);
+  const ctx=canvas.getContext('2d',{willReadFrequently:true});
+  const {data,width,height}=ctx.getImageData(0,0,canvas.width,canvas.height);
+  let sumR=0,sumG=0,sumB=0,sumL=0,sumS=0,sumL2=0,count=0,highlights=0,shadows=0,skin=0,blue=0,green=0,redish=0,edgeSum=0,edgeCount=0;
+  const hueBins=new Array(12).fill(0), lumas=[], colorBuckets=new Map();
+  const getLuma=(r,g,b)=>0.2126*r+0.7152*g+0.0722*b;
+  for(let y=0;y<height;y++) for(let x=0;x<width;x++){
+    const i=(y*width+x)*4;
+    const a=data[i+3]/255; if(a<0.02) continue;
+    const r=data[i]/255,g=data[i+1]/255,b=data[i+2]/255;
+    const l=getLuma(r,g,b); const {h,s,v}=rgbToHsv(r,g,b);
+    sumR+=r; sumG+=g; sumB+=b; sumL+=l; sumS+=s; sumL2+=l*l; count++; lumas.push(l);
+    if(l>0.85) highlights++; if(l<0.15) shadows++;
+    if(h>=180&&h<=255&&s>0.15&&v>0.2) blue++;
+    if(h>=70&&h<=165&&s>0.12&&v>0.18) green++;
+    if((h<=25||h>=330)&&s>0.15) redish++;
+    if((h>0&&h<50)&&s>0.15&&s<0.7&&r>0.2&&g>0.15&&b>0.05&&r>g&&g>b*0.8) skin++;
+    hueBins[Math.floor(h/30)%12]++;
+    const br=Math.floor(data[i]/32)*32, bg=Math.floor(data[i+1]/32)*32, bb=Math.floor(data[i+2]/32)*32, key=`${br},${bg},${bb}`;
+    colorBuckets.set(key,(colorBuckets.get(key)||0)+1);
+    if(x<width-1&&y<height-1){
+      const j=i+4, k=i+width*4;
+      const l1=getLuma(data[j]/255,data[j+1]/255,data[j+2]/255), l2=getLuma(data[k]/255,data[k+1]/255,data[k+2]/255);
+      edgeSum+=Math.abs(l-l1)+Math.abs(l-l2); edgeCount+=2;
+    }
+  }
+  lumas.sort((a,b)=>a-b); const p=q=>lumas[Math.min(lumas.length-1,Math.floor(q*(lumas.length-1)))];
+  const avgR=sumR/count,avgG=sumG/count,avgB=sumB/count,avgL=sumL/count,avgS=sumS/count;
+  const contrast=Math.sqrt(Math.max(0,sumL2/count-avgL*avgL));
+  const dynamicRange=p(.95)-p(.05), warmth=avgR-avgB, tint=avgG-((avgR+avgB)*0.5), edge=edgeCount?edgeSum/edgeCount:0;
+  const hueNames=['레드','오렌지','옐로','연두','그린','청록','시안','블루','보라','마젠타','핑크','웜레드'];
+  const dominantHue=hueNames[hueBins.indexOf(Math.max(...hueBins))];
+  const skyScore=blue/count, greenScore=green/count, skinScore=skin/count, redScore=redish/count, highlightsPct=highlights/count, shadowsPct=shadows/count;
+  const sceneTags=[]; if(skinScore>0.12) sceneTags.push('인물 가능성 높음'); if(skyScore>0.13) sceneTags.push('하늘/블루톤 강함'); if(greenScore>0.16) sceneTags.push('자연/그린톤 강함'); if(highlightsPct>0.24&&avgL>0.55) sceneTags.push('하이키'); if(shadowsPct>0.28&&avgL<0.42) sceneTags.push('로우키'); if(avgS>0.5) sceneTags.push('고채도'); if(dynamicRange>0.62) sceneTags.push('광대역 명암'); if(!sceneTags.length) sceneTags.push('균형형 장면');
+  const palette=[...colorBuckets.entries()].sort((a,b)=>b[1]-a[1]).slice(0,5).map(([key,c])=>{const [r,g,b]=key.split(',').map(Number); return {hex:rgbToHex(r,g,b), percent:Math.round(c/count*100), rgb:[r,g,b]};});
+  const lightMood = avgL>0.62 ? '밝고 개방적인 빛' : avgL<0.36 ? '짙고 눌린 빛' : contrast>0.23 ? '명암이 선명한 빛' : '부드럽고 안정된 빛';
+  const uncertainty = (avgS>0.68?0.14:0)+(dynamicRange>0.75?0.12:0)+(skinScore>0.08&&skyScore>0.10?0.08:0)+(palette.length>0&&palette[0].percent<18?0.06:0);
+  return {avgR,avgG,avgB,avgL,avgS,contrast,dynamicRange,warmth,tint,edge,highlights:highlightsPct,shadows:shadowsPct,skyScore,greenScore,skinScore,redScore,dominantHue,sceneTags,palette,lightMood,uncertainty};
+}
+
+function classifyMood(m){
+  return {
+    vividScore: clamp((m.avgS - 0.34) * 1.9 + (m.redScore + m.skyScore + m.greenScore) * 0.7 + (m.avgL > 0.48 ? 0.08 : 0), 0, 1),
+    cinematicScore: clamp((0.45 - m.avgS) * 1.25 + m.contrast * 1.55 + (m.shadows > 0.22 ? 0.18 : 0), 0, 1),
+    portraitScore: clamp(m.skinScore * 2.4 + (m.avgS < 0.52 ? 0.12 : 0) + (m.edge < 0.08 ? 0.08 : 0), 0, 1)
+  };
+}
+function chooseStyle(m){
+  const mood=classifyMood(m);
+  const p=getPriorityMode();
+  let vividBias=0, authenticBias=0;
+  if(p==='skin') authenticBias+=0.08;
+  if(p==='sky') vividBias += m.skyScore*0.08;
+  if(p==='mood') authenticBias+=0.06;
+  if(p==='accuracy') authenticBias+=0.04;
+  return (m.avgS > 0.53 || mood.vividScore + vividBias > 0.66 + authenticBias) ? 'Leica Vibrant' : 'Leica Authentic';
+}
+function scoreFilter(filter,m){
+  const mood=classifyMood(m); const p=getPriorityMode();
+  let s=0, reasons=[];
+  function add(v, reason){s+=v; if(reason) reasons.push(reason);}
+  if(filter==='Original'){ add(0.52, '안전한 기준점'); if(m.avgS>0.42&&m.avgS<0.56) add(0.1,'균형 채도'); }
+  if(filter==='Positive'){ add(0.45,'가벼운 생기'); if(m.skinScore>0.12) add(0.22,'피부 비중'); if(m.warmth>0.02) add(0.08,'따뜻한 장면'); }
+  if(filter==='Negative'){ add(0.42,'절제형 필름 무드'); if(m.avgS<0.40) add(0.22,'낮은 채도'); if(m.shadows>0.18) add(0.12,'그림자 존재감'); }
+  if(filter==='VIV' || filter==='Vivid'){ add(0.38,'강색 계열'); if(m.avgS>0.54) add(0.25,'고채도 장면'); if(m.redScore+m.skyScore+m.greenScore>0.32) add(0.12,'색 밀도 풍부'); }
+  if(filter==='NAT' || filter==='Leica Natural'){ add(0.5,'담백한 재현'); if(m.avgS<0.50) add(0.15,'과채도 억제'); }
+  if(filter==='Movie'){ add(0.4,'시네마 무드'); if(m.avgS<0.42) add(0.2,'저채도'); if(m.contrast>0.18) add(0.08,'명암 유지'); }
+  if(filter==='Gold Vibes'){ add(0.35,'웜 하이라이트'); if(m.warmth>0.08) add(0.22,'따뜻한 톤'); if(m.avgL>0.46) add(0.1,'밝은 장면'); }
+  if(filter==='Scarlet'){ add(0.28,'레드/브라운 무드'); if(m.redScore>0.11) add(0.26,'레드 비중'); if(m.skinScore>0.08) add(0.08,'피부와 상성'); }
+  if(filter==='Teal Mist'){ add(0.32,'청록 안개'); if(m.skyScore>0.12) add(0.22,'하늘/블루'); if(m.warmth<-0.03) add(0.12,'차가운 톤'); }
+  if(filter==='Monsoon'){ add(0.33,'차갑고 눅진한 분위기'); if(m.avgS<0.44) add(0.16,'낮은 채도'); if(m.shadows>0.20) add(0.16,'비·흐림 무드'); }
+  if(filter==='Leica Vivid'){ add(0.36,'Leica 강색'); if(m.avgS>0.56) add(0.22,'높은 채도'); }
+  if(filter==='Leica Sepia'){ add(0.16,'웜 빈티지'); if(m.warmth>0.10 && m.avgS<0.46 && m.avgL>0.40) add(0.30,'웜하고 절제된 장면'); }
+  if(filter==='Leica Blue'){ add(-0.18,'매우 제한적 사용'); if(m.avgS<0.10 && m.warmth<-0.08 && m.skyScore>0.12) add(0.60,'저채도·쿨톤·블루 조건 일치'); else add(-0.3,'일반 컬러 장면에 부적합'); }
+  if(filter==='Leica BW Natural'){ add(-0.05,'흑백 계열'); if(m.avgS<0.06) add(0.62,'색 정보가 거의 없음'); else add(-0.25,'컬러 정보 풍부'); }
+  if(filter==='Leica BW HC'){ add(-0.08,'강한 흑백 계열'); if(m.avgS<0.06 && m.contrast>0.2) add(0.68,'저채도+강한 명암'); else add(-0.26,'컬러/낮은 명암 부적합'); }
+  if(p==='skin'){
+    if(filter==='Positive' || filter==='Leica Natural') add(0.12,'피부 우선 보정');
+    if(filter==='VIV' || filter==='Vivid' || filter==='Teal Mist') add(-0.07,'피부 우선과 상충');
+  }
+  if(p==='sky'){
+    if(filter==='Teal Mist' || filter==='Leica Blue' || filter==='Monsoon') add(0.1,'하늘 우선');
+    if(filter==='Gold Vibes') add(-0.03,'하늘 우선과는 거리');
+  }
+  if(p==='mood'){
+    if(['Movie','Monsoon','Teal Mist','Scarlet','Gold Vibes'].includes(filter)) add(0.12,'무드 우선');
+  }
+  if(p==='accuracy'){
+    if(['Original','NAT','Leica Natural','Positive'].includes(filter)) add(0.12,'정확도 우선');
+    if(['VIV','Vivid','Leica Vivid','Gold Vibes','Scarlet'].includes(filter)) add(-0.06,'과한 캐릭터성');
+  }
+  return {filter, score:s, reason:reasons.slice(0,4).join(' · ') || FILTER_INFO[filter]?.desc || ''};
+}
+function chooseFilterRanking(m){
+  const filters = Object.keys(FILTER_INFO);
+  return filters.map(f=>scoreFilter(f,m)).sort((a,b)=>b.score-a.score);
+}
+function buildCandidateForFilter(m, style, filter, rankIndex=0){
+  let warmCool = clamp(Math.round(m.warmth * 140), -28, 28);
+  let tint = clamp(Math.round(-m.tint * 180), -20, 20);
+  let saturation = clamp(Math.round((m.avgS - 0.42) * 120), -24, 24);
+  let contrast = clamp(Math.round((m.contrast - 0.21) * 170), -24, 24);
+  let sharpness = clamp(Math.round(((m.edge - 0.01)/(0.16-0.01)) * 28 - 8), -10, 20);
+  let exposure = clamp(round((m.avgL - 0.5) * 2.8, 1), -1.8, 1.8);
+
+  if(style === 'Leica Vibrant') saturation = clamp(saturation + 3, -24, 24);
+  if(style === 'Leica Authentic') contrast = clamp(contrast + 2, -24, 24);
+  if(['Leica Vivid','VIV','Vivid'].includes(filter)) saturation = clamp(saturation + 5, -24, 24);
+  if(['Leica Natural','NAT'].includes(filter)) saturation = clamp(saturation - 1, -24, 24);
+  if(filter === 'Movie'){ saturation = clamp(saturation - 4, -24, 24); contrast = clamp(contrast + 2, -24, 24); tint = clamp(tint - 2, -20, 20); }
+  if(filter === 'Gold Vibes'){ warmCool = clamp(warmCool + 10, -28, 28); saturation = clamp(saturation + 2, -24, 24); }
+  if(filter === 'Scarlet'){ warmCool = clamp(warmCool + 5, -28, 28); saturation = clamp(saturation - 2, -24, 24); contrast = clamp(contrast + 2, -24, 24); tint = clamp(tint + 1, -20, 20); }
+  if(filter === 'Teal Mist'){ warmCool = clamp(warmCool - 8, -28, 28); tint = clamp(tint - 5, -20, 20); saturation = clamp(saturation - 3, -24, 24); contrast = clamp(contrast - 2, -24, 24); }
+  if(filter === 'Monsoon'){ warmCool = clamp(warmCool - 5, -28, 28); tint = clamp(tint - 2, -20, 20); saturation = clamp(saturation - 4, -24, 24); }
+  if(filter === 'Leica Sepia'){ warmCool = clamp(warmCool + 8, -28, 28); saturation = clamp(saturation - 3, -24, 24); }
+  if(filter === 'Leica Blue'){ warmCool = clamp(warmCool - 14, -28, 28); tint = clamp(tint - 4, -20, 20); saturation = clamp(saturation - 8, -24, 24); }
+  if(m.skinScore > 0.14) sharpness = clamp(sharpness - 2, -10, 20);
+  if(m.highlights > 0.24) exposure = clamp(exposure - 0.2, -1.8, 1.8);
+  if(m.shadows > 0.28 && m.avgL < 0.4) exposure = clamp(exposure + 0.2, -1.8, 1.8);
+
+  const confidence = clamp(0.5 + (1 - Math.abs(0.46 - m.avgS)) * 0.16 + (m.dynamicRange * 0.18) + (Math.min(0.18, m.edge) * 0.45) - m.uncertainty*0.4 - rankIndex*0.03, 0.35, 0.93);
+  const cameraSuggestion = m.skinScore > 0.16 ? '75–100mm 망원 우선' : (m.skyScore + m.greenScore > 0.28 ? '23mm 메인 우선' : '23mm 메인 기본');
+  const awbStrategy = Math.abs(m.warmth) < 0.04 ? 'AWB 유지' : (m.warmth > 0 ? 'AWB 유지 후 필요 시 약간 따뜻하게' : 'AWB 유지 후 필요 시 약간 차갑게');
+  const notes = [];
+  if(style === 'Leica Vibrant') notes.push('스타일은 색 밀도와 시각적 임팩트를 우선하는 방향입니다.');
+  if(style === 'Leica Authentic') notes.push('스타일은 무드와 명암을 살리는 방향이 유리합니다.');
+  if(filter === 'Leica Blue') notes.push('Leica Blue는 블루톤 모노 성향에 가까워 일반 컬러 장면에는 보수적으로 추천합니다.');
+  if(['Movie','Monsoon','Teal Mist'].includes(filter)) notes.push('이 필터군은 atmosphere 계열로 색온도와 틴트 반영이 큽니다.');
+  if(['Gold Vibes','Scarlet'].includes(filter)) notes.push('웜/레드 계열의 감정선을 살리는 데 유리합니다.');
+  if(m.skinScore > 0.12) notes.push('인물 비중이 있어 피부 안정감을 우선했습니다.');
+  if(m.skyScore > 0.14) notes.push('블루톤 정보가 많아 하늘 보존 쪽으로 조정했습니다.');
+  if(m.dynamicRange > 0.62) notes.push('명암 범위가 넓어 노출은 하이라이트 보호 쪽이 안전합니다.');
+  if(!notes.length) notes.push('균형형 장면이라 극단 설정보다 미세 조정형 추천이 적합합니다.');
+  const tips = [`${cameraSuggestion}으로 시작하세요.`, `${awbStrategy}.`];
+  if(['Leica Vivid','VIV','Vivid'].includes(filter)) tips.push('채도를 너무 많이 올리면 붉은색이 먼저 무너질 수 있으니 +12 전후부터 점검하세요.');
+  if(['Negative','NAT','Leica Natural','Movie','Monsoon','Teal Mist'].includes(filter)) tips.push('명암을 너무 눌러버리면 회색 안개처럼 보일 수 있으니 대비는 중간선에서 미세 조정하세요.');
+  if(m.skinScore > 0.12) tips.push('인물 촬영이면 선명도보다 망원 화각과 얼굴 노출 안정화가 결과를 더 크게 바꿉니다.');
+
+  const warnings = [];
+  if(confidence < 0.58) warnings.push({level:'warn', text:'분석 신뢰도가 낮습니다. 추천을 시작점으로 보고 수동 튜닝을 권장합니다.'});
+  if(m.uncertainty > 0.18) warnings.push({level:'warn', text:'후보정이 강하거나 장면 요소가 섞여 있어 필터보다 WB/EV 영향이 더 클 수 있습니다.'});
+  if(filter === 'Leica Blue' || filter.startsWith('Leica BW')) warnings.push({level:'bad', text:'예술적 필터 성향이 강합니다. 일반 컬러 복원 목적이면 다른 후보를 먼저 확인하세요.'});
+  return {id:uid(), style, filter, confidence, cameraSuggestion, awbStrategy, sliders:{warmCool,tint,saturation,contrast,sharpness,exposure}, notes, tips, warnings, summary:{brightness:scoreToText(m.avgL,['어두운 편','중간','밝은 편']), saturation:scoreToText(m.avgS,['절제형','균형형','강한 편']), contrast:scoreToText(m.contrast,['부드러운 편','중간','강한 편'])}};
+}
+
+function getBaselineNeutralize(style, filter){
+  let sat=0, cont=0, warm=0, tint=0;
+  if(style==='Leica Vibrant'){ sat+=0.08; cont+=0.04; warm+=0.01; }
+  if(filter==='Positive'){ sat+=0.03; warm+=0.05; }
+  if(filter==='Negative'){ sat-=0.10; cont+=0.04; }
+  if(filter==='VIV' || filter==='Vivid'){ sat+=0.09; cont+=0.05; }
+  if(filter==='NAT'){ sat-=0.03; }
+  if(filter==='Movie'){ sat-=0.06; cont+=0.02; tint-=0.01; }
+  if(filter==='Gold Vibes'){ sat+=0.02; warm+=0.11; cont+=0.02; }
+  if(filter==='Scarlet'){ sat-=0.02; warm+=0.06; cont+=0.04; tint+=0.01; }
+  if(filter==='Teal Mist'){ sat-=0.04; warm-=0.06; tint-=0.05; cont-=0.02; }
+  if(filter==='Monsoon'){ sat-=0.06; warm-=0.05; tint-=0.02; cont+=0.01; }
+  if(filter==='Leica Natural'){ sat-=0.01; cont+=0.01; }
+  if(filter==='Leica Vivid'){ sat+=0.12; cont+=0.05; warm+=0.01; }
+  if(filter==='Leica Sepia'){ sat-=0.05; cont+=0.02; warm+=0.16; }
+  if(filter==='Leica Blue'){ sat-=0.10; cont+=0.02; warm-=0.18; tint-=0.04; }
+  if(filter==='Leica BW Natural'){ sat=-1; cont+=0.02; }
+  if(filter==='Leica BW HC'){ sat=-1; cont+=0.12; }
+  return {sat,cont,warm,tint};
+}
+
+function getCurrentTweak(){
+  if(!state.liveAdjustments) return {warmCool:0,tint:0,saturation:0,contrast:0,sharpness:0,exposure:0};
+  return state.liveAdjustments;
+}
+function applyColorTransform(img, candidate, opts={}){
+  const maxSide = opts.maxSide || 1400;
+  const tweak = opts.tweak || null;
+  const canvas=document.createElement('canvas');
+  const scale=Math.min(1,maxSide/Math.max(img.width,img.height));
+  canvas.width=Math.max(16,Math.round(img.width*scale));
+  canvas.height=Math.max(16,Math.round(img.height*scale));
+  const ctx=canvas.getContext('2d',{willReadFrequently:true});
+  ctx.drawImage(img,0,0,canvas.width,canvas.height);
+  const imageData=ctx.getImageData(0,0,canvas.width,canvas.height), d=imageData.data;
+  const sliders = tweak || candidate.sliders;
+  let sat=sliders.saturation/100, cont=sliders.contrast/100, warm=sliders.warmCool/120, tint=sliders.tint/20, exp=sliders.exposure/5, sharp=sliders.sharpness/100;
+  const base=getBaseline(); const neutralize=getBaselineNeutralize(base.style, base.filter);
+  if(neutralize.sat<=-1) sat=Math.max(sat,-0.22); else sat-=neutralize.sat;
+  cont-=neutralize.cont; warm-=neutralize.warm; tint-=neutralize.tint * 4;
+  if(candidate.style==='Leica Vibrant') sat+=0.03; else cont+=0.02;
+
+  for(let i=0;i<d.length;i+=4){
+    let r=d[i]/255,g=d[i+1]/255,b=d[i+2]/255;
+    r=clamp(r+exp,0,1); g=clamp(g+exp,0,1); b=clamp(b+exp,0,1);
+    const l=0.2126*r+0.7152*g+0.0722*b;
+    r=clamp(l+(r-l)*(1+sat),0,1); g=clamp(l+(g-l)*(1+sat),0,1); b=clamp(l+(b-l)*(1+sat),0,1);
+    r=clamp((r-0.5)*(1+cont)+0.5,0,1); g=clamp((g-0.5)*(1+cont)+0.5,0,1); b=clamp((b-0.5)*(1+cont)+0.5,0,1);
+    r=clamp(r+warm*0.07,0,1); b=clamp(b-warm*0.07,0,1);
+    if(tint >= 0){
+      g=clamp(g-tint*0.08,0,1);
+      r=clamp(r+tint*0.05,0,1);
+      b=clamp(b+tint*0.05,0,1);
+    }else{
+      const teal=-tint;
+      r=clamp(r-teal*0.04,0,1);
+      g=clamp(g+teal*0.05,0,1);
+      b=clamp(b+teal*0.03,0,1);
+    }
+
+    if(candidate.filter==='Leica Sepia'){
+      const nr=clamp(r*0.393 + g*0.769 + b*0.189,0,1), ng=clamp(r*0.349 + g*0.686 + b*0.168,0,1), nb=clamp(r*0.272 + g*0.534 + b*0.131,0,1);
+      r=lerp(r,nr,0.18); g=lerp(g,ng,0.18); b=lerp(b,nb,0.18);
+    }else if(candidate.filter==='Leica Blue'){
+      const mono=(r+g+b)/3;
+      r=clamp(mono*0.70,0,1); g=clamp(mono*0.84,0,1); b=clamp(mono*1.18,0,1);
+    }else if(candidate.filter==='Leica BW Natural' || candidate.filter==='Leica BW HC'){
+      const mono=l; r=g=b=candidate.filter==='Leica BW HC' ? clamp((mono-0.5)*1.15+0.5,0,1):mono;
+    }else if(candidate.filter==='Movie'){
+      const shadow=Math.max(0,0.45-l); b=clamp(b+shadow*0.10,0,1); g=clamp(g+shadow*0.04,0,1); r=clamp(r+Math.max(0,l-0.55)*0.04,0,1);
+    }else if(candidate.filter==='Gold Vibes'){
+      r=clamp(r+0.05,0,1); g=clamp(g+0.025,0,1); b=clamp(b-0.02,0,1);
+    }else if(candidate.filter==='Scarlet'){
+      const mono=l; r=clamp(r+0.04,0,1); b=clamp(lerp(b,mono,0.12)-0.015,0,1); g=clamp(g-0.01,0,1);
+    }else if(candidate.filter==='Teal Mist'){
+      const mist=0.05; r=clamp(r-0.02,0,1); g=clamp(g+0.015+mist*(1-l),0,1); b=clamp(b+0.045+mist*(1-l),0,1);
+      r=lerp(r,0.88,0.03); g=lerp(g,0.90,0.03); b=lerp(b,0.94,0.03);
+    }else if(candidate.filter==='Vivid' || candidate.filter==='VIV' || candidate.filter==='Leica Vivid'){
+      r=clamp(r+(r-l)*0.05,0,1); g=clamp(g+(g-l)*0.05,0,1); b=clamp(b+(b-l)*0.05,0,1);
+    }else if(candidate.filter==='Monsoon'){
+      const lift=0.035; r=clamp(r-0.015+lift,0,1); g=clamp(g+0.005+lift,0,1); b=clamp(b+0.025+lift,0,1);
+    }
+    if(candidate.style==='Leica Authentic'){
+      const lowBoost=Math.max(0,0.35-l)*0.08; r=clamp(r-lowBoost*0.12,0,1); g=clamp(g-lowBoost*0.12,0,1); b=clamp(b-lowBoost*0.12,0,1);
+    }else{
+      const vib=0.03; r=clamp(r+vib*(r-l),0,1); g=clamp(g+vib*(g-l),0,1); b=clamp(b+vib*(b-l),0,1);
+    }
+
+    d[i]=Math.round(clamp(r,0,1)*255); d[i+1]=Math.round(clamp(g,0,1)*255); d[i+2]=Math.round(clamp(b,0,1)*255);
+  }
+  ctx.putImageData(imageData,0,0);
+
+  if(sharp>0.02){
+    const id=ctx.getImageData(0,0,canvas.width,canvas.height), src=id.data, out=new Uint8ClampedArray(src), amount=clamp(sharp*0.8,0,0.22);
+    for(let y=1;y<canvas.height-1;y++) for(let x=1;x<canvas.width-1;x++){
+      const idx=(y*canvas.width+x)*4;
+      for(let c=0;c<3;c++){
+        const center=src[idx+c], left=src[idx-4+c], right=src[idx+4+c], up=src[idx-canvas.width*4+c], down=src[idx+canvas.width*4+c], blur=(left+right+up+down)*0.25;
+        out[idx+c]=clamp(center+(center-blur)*(amount*4),0,255);
+      }
+    }
+    id.data.set(out); ctx.putImageData(id,0,0);
+  }
+  return canvas;
+}
+
+function drawCanvasToCanvas(sourceCanvas, targetCanvas){
+  const ctx=targetCanvas.getContext('2d');
+  targetCanvas.width=targetCanvas.clientWidth*(window.devicePixelRatio||1);
+  targetCanvas.height=targetCanvas.clientHeight*(window.devicePixelRatio||1);
+  ctx.fillStyle='#02060f'; ctx.fillRect(0,0,targetCanvas.width,targetCanvas.height);
+  const scale=Math.min(targetCanvas.width/sourceCanvas.width,targetCanvas.height/sourceCanvas.height);
+  const dw=sourceCanvas.width*scale, dh=sourceCanvas.height*scale, dx=(targetCanvas.width-dw)*.5, dy=(targetCanvas.height-dh)*.5;
+  ctx.drawImage(sourceCanvas,dx,dy,dw,dh);
+}
+function updateCompareUI(){
+  const v=state.compare;
+  els.compareAppliedCanvas.style.clipPath=`inset(0 0 0 ${v}%)`;
+  els.compareDivider.style.left=`${v}%`;
+  els.compareHandle.style.left=`${v}%`;
+}
+
+function getSelectedCandidate(){ return state.selectedCandidate || state.aiTopCandidate; }
+function getCurrentPreviewCandidate(){ return state.currentPreviewCandidate || getSelectedCandidate(); }
+
+async function renderCandidateThumbs(){
+  const grid=els.candidateGrid;
+  grid.innerHTML='';
+  if(!state.source || !state.ranking.length) return;
+  for(let i=0;i<Math.min(5,state.ranking.length);i++){
+    const c=state.ranking[i];
+    const card=document.createElement('div');
+    card.className='candidate-card' + ((getSelectedCandidate()?.id===c.id)?' active':'');
+    card.dataset.id=c.id;
+    card.innerHTML=`<div class="candidate-thumb"><canvas id="thumb_${c.id}"></canvas></div><div class="candidate-title">${c.filter}</div><div class="candidate-sub">${c.style} · ${Math.round(c.confidence*100)}점 · ${FILTER_INFO[c.filter]?.desc||''}</div>`;
+    card.addEventListener('click',()=>selectCandidate(c.id));
+    grid.appendChild(card);
+    // downscaled thumbnail rendering
+    await delayFrame();
+    const thumbCanvas=card.querySelector('canvas');
+    const rendered=applyColorTransform(state.source,c,{maxSide:280,tweak:c.sliders});
+    drawCanvasToCanvas(rendered, thumbCanvas);
+  }
+  refreshCandidateActive();
+}
+function refreshCandidateActive(){
+  [...els.candidateGrid.querySelectorAll('.candidate-card')].forEach(card=>{
+    card.classList.toggle('active', card.dataset.id === getSelectedCandidate()?.id);
+  });
+}
+function findCandidateById(id){
+  return state.ranking.find(c=>c.id===id) || null;
+}
+function cloneObj(o){ return JSON.parse(JSON.stringify(o)); }
+function selectCandidate(id, force=false){
+  if(state.lockedCandidateId && !force) return;
+  const c=findCandidateById(id);
+  if(!c) return;
+  state.selectedCandidate=c;
+  state.currentPreviewCandidate=c;
+  state.liveAdjustments=cloneObj(c.sliders);
+  renderCurrentSelection();
+  refreshComparePreview();
+}
+function setLockState(id){
+  state.lockedCandidateId=id||null;
+  els.lockBadge.textContent = `선택안 잠금: ${state.lockedCandidateId ? '적용' : '해제'}`;
+}
+function resetLiveToCandidate(candidate){
+  if(!candidate) return;
+  state.liveAdjustments=cloneObj(candidate.sliders);
+  renderLiveGrid();
+  refreshComparePreview();
+}
+function getDeltaFromSelected(){
+  const base = getSelectedCandidate();
+  const tweak = getCurrentTweak();
+  if(!base) return null;
+  const out={};
+  Object.keys(base.sliders).forEach(k=> out[k] = cleanNumber((tweak[k]||0) - (base.sliders[k]||0), k==='exposure'?1:0));
+  return out;
+}
+
+function refreshComparePreview(){
+  const candidate = getCurrentPreviewCandidate();
+  if(!state.source || !candidate){
+    [els.compareBaseCanvas, els.compareAppliedCanvas].forEach(c=>{ const ctx=c.getContext('2d'); c.width=c.clientWidth*(window.devicePixelRatio||1); c.height=c.clientHeight*(window.devicePixelRatio||1); ctx.fillStyle='#02060f'; ctx.fillRect(0,0,c.width,c.height); });
+    els.previewNote.textContent='아직 샤오미 원본 테스트 이미지가 없습니다. 업로드 후 분석하면 한 화면 비교 프리뷰가 생성됩니다.';
+    updateCompareUI();
+    return;
+  }
+  const srcCanvas=imageToSampleCanvas(state.source,1400);
+  const applied=applyColorTransform(state.source,candidate,{maxSide:1400,tweak:getCurrentTweak()});
+  drawCanvasToCanvas(srcCanvas,els.compareBaseCanvas);
+  drawCanvasToCanvas(applied,els.compareAppliedCanvas);
+  const base=getBaseline();
+  els.previewNote.textContent=`원본 기준: ${base.style} / ${base.filter} · 현재 미리보기: ${candidate.style} / ${candidate.filter} · 수동 튜닝 반영 중`;
+  updateCompareUI();
+  renderBuiltinPresets();
+}
+
+function renderStats(m){
+  els.statLuma.textContent=pct(m.avgL);
+  els.statSat.textContent=pct(m.avgS);
+  els.statContrast.textContent=round(m.contrast,3);
+  els.statWarm.textContent=m.warmth>0.03?'웜':m.warmth<-0.03?'쿨':'중립';
+  els.statTint.textContent=m.tint>0.02?'그린':m.tint<-0.02?'마젠타':'중립';
+  els.statScene.textContent=m.sceneTags[0];
+}
+function detailRows(rows){ return rows.map(([k,v])=>`<div class="kv"><div class="k">${k}</div><div class="v">${v}</div></div>`).join(''); }
+
+function renderCurrentSelection(){
+  const candidate=getSelectedCandidate();
+  if(!candidate) return;
+  const base=getBaseline();
+  els.modeChips.innerHTML = [
+    `<div class="chip">${candidate.style}</div>`,
+    `<div class="chip">${candidate.filter}</div>`,
+    `<div class="chip">${candidate.cameraSuggestion}</div>`,
+    `<div class="chip">신뢰도 ${Math.round(candidate.confidence*100)}%</div>`
+  ].join('');
+  els.modeDetail.innerHTML = detailRows([
+    ['추천 스타일', candidate.style],
+    ['추천 필터', candidate.filter],
+    ['원본 스타일', base.style],
+    ['원본 필터', base.filter],
+    ['AWB 전략', candidate.awbStrategy],
+    ['추천 렌즈', candidate.cameraSuggestion],
+    ['밝기/채도/대비', `${candidate.summary.brightness} / ${candidate.summary.saturation} / ${candidate.summary.contrast}`],
+    ['설명', candidate.notes.join(' ')],
+    ['프리셋 원형', candidate.builtinMeta ? `${candidate.builtinMeta.group} · ${candidate.builtinMeta.sourceTone}` : 'AI 분석 기반 추천안']
+  ]);
+  renderApplyList();
+  renderLiveGrid();
+  renderDeltaAndWarnings();
+  renderPriorityList();
+  renderAIDetail();
+  renderReport();
+  renderTips();
+  refreshCandidateActive();
+  els.copyTextBtn.disabled=false; els.copyJsonBtn.disabled=false; els.downloadTxtBtn.disabled=false;
+}
+function renderApplyList(){
+  const c=getSelectedCandidate(); const tweak=getCurrentTweak(); if(!c) return;
+  const rows = [
+    ['Leica 스타일', c.style],
+    ['필터 선택', c.filter],
+    ['AWB', c.awbStrategy],
+    ['차가움/따뜻함', formatSigned(tweak.warmCool)],
+    ['청록↔자홍', formatSigned(tweak.tint)],
+    ['채도 / 대비 / 선명도 / EV', `${formatSigned(tweak.saturation)} / ${formatSigned(tweak.contrast)} / ${formatSigned(tweak.sharpness)} / ${formatSigned(tweak.exposure,1)}`]
+  ];
+  els.applyList.innerHTML = rows.map((r,i)=>`<div class="apply-step"><div class="apply-num">${i+1}</div><div><div style="font-weight:800">${r[0]}</div><div class="tiny" style="margin-top:4px">${r[1]}</div></div></div>`).join('');
+}
+function sliderControl(name, key, min, max, step, value){
+  const ai = getSelectedCandidate()?.sliders?.[key] ?? 0;
+  const cur = getCurrentTweak()[key] ?? 0;
+  const delta = cleanNumber(cur - ai, key==='exposure'?1:0);
+  return `<div class="live-card">
+    <div class="live-top"><span>${name}</span><strong class="live-value">${formatSigned(cur, key==='exposure'?1:0)}</strong></div>
+    <input type="range" data-key="${key}" min="${min}" max="${max}" step="${step}" value="${cur}" class="live-slider" style="width:100%">
+    <div class="live-delta">AI 추천: ${formatSigned(ai, key==='exposure'?1:0)} · 조정량: ${formatSigned(delta, key==='exposure'?1:0)}</div>
+  </div>`;
+}
+function updateLiveGridDisplay(){
+  const selected=getSelectedCandidate(); if(!selected) return;
+  const tweak=getCurrentTweak();
+  [...els.liveGrid.querySelectorAll('.live-slider')].forEach(sl=>{
+    const key=sl.dataset.key;
+    const cur=tweak[key] ?? 0;
+    const ai=selected.sliders?.[key] ?? 0;
+    const dec=key==='exposure'?1:0;
+    const card=sl.closest('.live-card');
+    const valueEl=card?.querySelector('.live-value');
+    const deltaEl=card?.querySelector('.live-delta');
+    if(valueEl) valueEl.textContent=formatSigned(cur, dec);
+    if(deltaEl) deltaEl.textContent=`AI 추천: ${formatSigned(ai, dec)} · 조정량: ${formatSigned(cleanNumber(cur-ai, dec), dec)}`;
+    if(document.activeElement !== sl) sl.value=cur;
+  });
+}
+function bindLiveGridEvents(){
+  [...els.liveGrid.querySelectorAll('.live-slider')].forEach(sl=>{
+    if(sl.dataset.bound==='1') return;
+    sl.dataset.bound='1';
+    sl.addEventListener('input', e=>{
+      const key=e.target.dataset.key;
+      state.liveAdjustments[key] = key==='exposure' ? cleanNumber(parseFloat(e.target.value),1) : parseInt(e.target.value,10);
+      updateLiveGridDisplay();
+      renderApplyList();
+      renderDeltaAndWarnings();
+      refreshComparePreview();
+    });
+  });
+}
+function renderLiveGrid(){
+  const c=getSelectedCandidate(); if(!c) return;
+  els.liveGrid.innerHTML = [
+    sliderControl('차가움 / 따뜻함','warmCool',-28,28,1,getCurrentTweak().warmCool),
+    sliderControl('청록 / 자홍','tint',-20,20,1,getCurrentTweak().tint),
+    sliderControl('채도','saturation',-24,24,1,getCurrentTweak().saturation),
+    sliderControl('대비','contrast',-24,24,1,getCurrentTweak().contrast),
+    sliderControl('선명도','sharpness',-10,20,1,getCurrentTweak().sharpness),
+    sliderControl('EV','exposure',-1.8,1.8,0.1,getCurrentTweak().exposure),
+  ].join('');
+  bindLiveGridEvents();
+  updateLiveGridDisplay();
+}
+function renderDeltaAndWarnings(){
+  const c=getSelectedCandidate(); if(!c) return;
+  const delta=getDeltaFromSelected(); const tweak=getCurrentTweak();
+  els.deltaDetail.innerHTML = detailRows([
+    ['현재 선택안', `${c.style} / ${c.filter}`],
+    ['변화량', `따뜻함 ${formatSigned(delta.warmCool)} · 틴트 ${formatSigned(delta.tint)} · 채도 ${formatSigned(delta.saturation)} · 대비 ${formatSigned(delta.contrast)}`],
+    ['추가 변화량', `선명도 ${formatSigned(delta.sharpness)} · EV ${formatSigned(delta.exposure,1)}`],
+    ['현재 튜닝값', `${formatSigned(tweak.warmCool)} / ${formatSigned(tweak.tint)} / ${formatSigned(tweak.saturation)} / ${formatSigned(tweak.contrast)} / ${formatSigned(tweak.sharpness)} / ${formatSigned(tweak.exposure,1)}`]
+  ]);
+  const warnings = [...c.warnings];
+  const heavyTweak = Object.values(delta).some(v=>Math.abs(v)>= (typeof v==='number' && String(v).includes('.')?0.6:6));
+  if(heavyTweak) warnings.push({level:'warn', text:'현재 수동 튜닝이 AI 추천에서 꽤 벗어났습니다. 저장 전 원본/적용 비교를 다시 확인하세요.'});
+  if(state.lockedCandidateId) warnings.push({level:'good', text:'현재 선택안이 잠겨 있어 썸네일을 눌러도 변경되지 않습니다.'});
+  els.warningDetail.innerHTML = warnings.map(w=>`<div class="priority-item"><div class="${w.level==='good'?'good':w.level==='bad'?'bad':'warn'}" style="font-weight:800">${w.level==='good'?'참고':w.level==='bad'?'주의':'경고'}</div><div class="priority-reason" style="margin-top:6px">${w.text}</div></div>`).join('') || '<div class="tiny">경고 없음</div>';
+}
+function renderPriorityList(){
+  els.priorityList.innerHTML = state.ranking.slice(0,5).map((r,idx)=>`<div class="priority-item"><div class="priority-top"><div><strong>${idx+1}. ${r.filter}</strong><div class="tiny" style="margin-top:4px">${FILTER_INFO[r.filter]?.desc||''}</div></div><div class="priority-score">${Math.round(clamp(r.score/1.4,0,1)*100)}점</div></div><div class="priority-reason">${r.reason}</div></div>`).join('');
+}
+function renderAIDetail(){
+  const m=state.analysis; if(!m) return;
+  const palette = m.palette.map(p=>`<div><div class="palette-swatch" style="background:${p.hex}"></div><div class="palette-meta">${p.hex}<br>${p.percent}%</div></div>`).join('');
+  els.aiDetail.innerHTML = detailRows([
+    ['주도 색상', m.dominantHue],
+    ['조명 무드', m.lightMood],
+    ['피부 / 하늘 / 초록', `${pct(m.skinScore)} / ${pct(m.skyScore)} / ${pct(m.greenScore)}`],
+    ['레드 / 그림자 / 하이라이트', `${pct(m.redScore)} / ${pct(m.shadows)} / ${pct(m.highlights)}`],
+    ['광대역 명암', `${pct(m.dynamicRange)}`],
+    ['텍스처 강도', round(m.edge,3)]
+  ]) + `<div style="margin-top:12px"><div class="tiny" style="margin-bottom:8px">추출 팔레트 5색</div><div class="palette-row">${palette}</div></div>`;
+}
+function renderTips(){
+  const c=getSelectedCandidate(); if(!c) return;
+  els.tipsList.innerHTML = c.tips.map(t=>`<li>${t}</li>`).join('');
+}
+function buildReport(){
+  const c=getSelectedCandidate(); const m=state.analysis; const base=getBaseline(); const tweak=getCurrentTweak();
+  if(!c || !m) return '분석 전입니다.';
+  return [
+    'Xiaomi 17 Ultra Color Match Report',
+    '===================================',
+    '',
+    `[신뢰도] ${Math.round(c.confidence*100)}%`,
+    `[장면 추정] ${m.sceneTags.join(' / ')}`,
+    `[조명 무드] ${m.lightMood}`,
+    `[주도 색상] ${m.dominantHue}`,
+    '',
+    '[추천 결과]',
+    `- 추천 Leica 스타일: ${c.style}`,
+    `- 추천 필터: ${c.filter}`,
+    `- 추천 렌즈: ${c.cameraSuggestion}`,
+    `- AWB 전략: ${c.awbStrategy}`,
+    '',
+    '[원본 기준]',
+    `- 원본 Leica 스타일: ${base.style}`,
+    `- 원본 필터: ${base.filter}`,
+    '',
+    '[현재 Live Tweak 값]',
+    `- 차가움/따뜻함: ${formatSigned(tweak.warmCool)}`,
+    `- 청록색/자홍색: ${formatSigned(tweak.tint)}`,
+    `- 채도: ${formatSigned(tweak.saturation)}`,
+    `- 대비: ${formatSigned(tweak.contrast)}`,
+    `- 선명도: ${formatSigned(tweak.sharpness)}`,
+    `- EV 보정: ${formatSigned(tweak.exposure,1)}`,
+    '',
+    '[타겟 분석값]',
+    `- 평균 밝기: ${pct(m.avgL)}`,
+    `- 평균 채도: ${pct(m.avgS)}`,
+    `- 명암 대비: ${round(m.contrast,3)}`,
+    `- 다이내믹 레인지 추정: ${pct(m.dynamicRange)}`,
+    `- 색온도 방향: ${m.warmth > 0.03 ? '웜' : m.warmth < -0.03 ? '쿨' : '중립'}`,
+    `- 틴트 방향: ${m.tint > 0.02 ? '그린 성향' : m.tint < -0.02 ? '마젠타 성향' : '중립'}`,
+    '',
+    '[필터 우선순위 Top 5]',
+    ...state.ranking.slice(0,5).map((r,i)=>`- ${i+1}. ${r.filter} :: ${r.reason}`),
+    '',
+    '[판단 메모]',
+    ...c.notes.map(v=>`- ${v}`),
+    '',
+    '[운용 팁]',
+    ...c.tips.map(v=>`- ${v}`)
+  ].join('\n');
+}
+function renderReport(){ els.reportBox.textContent = buildReport(); }
+
+function setUIMode(mode){
+  state.uiMode=mode;
+  els.simpleModeBtn.classList.toggle('active', mode==='simple');
+  els.proModeBtn.classList.toggle('active', mode==='pro');
+  [els.proPriorityWrap, els.proAnalysisWrap, els.presetPanel].forEach(el=>el.classList.toggle('hidden', mode!=='pro'));
+  if(mode==='simple'){ [els.proPriorityWrap, els.proAnalysisWrap, els.presetPanel].forEach(el=>{ if(el && el.open) el.open=false; }); }
+}
+function showPreview(canvasEl, wrapEl, placeholderEl, img){ placeholderEl.style.display='none'; wrapEl.classList.add('active'); drawContain(img, canvasEl, 8); }
+
+async function renderAllAfterAnalysis(){
+  renderStats(state.analysis);
+  renderCurrentSelection();
+  await renderCandidateThumbs();
+  refreshComparePreview();
+}
+
+async function handleAnalyze(){
+  if(!state.target) return;
+  showLoading(true);
+  els.analyzeBtn.disabled=true;
+  try{
+    updateLoading('이미지 준비 중', 8); await delayFrame();
+    updateLoading('장면과 색 분포 분석 중', 24); await delayFrame();
+    const analysis = analyzeImage(state.target); state.analysis = analysis;
+    updateLoading('필터 우선순위 계산 중', 48); await delayFrame();
+    const style=chooseStyle(analysis);
+    const rankingRaw=chooseFilterRanking(analysis).slice(0,5);
+    state.ranking = rankingRaw.map((r,idx)=>buildCandidateForFilter(analysis, style, r.filter, idx));
+    state.aiTopCandidate = state.ranking[0];
+    if(!state.lockedCandidateId){
+      state.selectedCandidate = state.aiTopCandidate;
+      state.currentPreviewCandidate = state.aiTopCandidate;
+      state.liveAdjustments = cloneObj(state.aiTopCandidate.sliders);
+    }
+    updateLoading('추천 썸네일 생성 중', 72); await delayFrame();
+    await renderAllAfterAnalysis();
+    updateLoading('프리뷰와 리포트 정리 중', 92); await delayFrame();
+    renderPresets();
+    updateLoading('완료', 100); await delayFrame();
+  } finally{
+    setTimeout(()=>showLoading(false), 180);
+    els.analyzeBtn.disabled=false;
+  }
+}
+
+function selectCandidateAndRender(candidateId){
+  selectCandidate(candidateId, false);
+}
+function buildDemoImage(){
+  const c=document.createElement('canvas'); c.width=1280; c.height=900; const ctx=c.getContext('2d');
+  const grad=ctx.createLinearGradient(0,0,c.width,c.height); grad.addColorStop(0,'#29496f'); grad.addColorStop(0.38,'#7ea8c9'); grad.addColorStop(0.6,'#d7b18a'); grad.addColorStop(1,'#6c4d3c');
+  ctx.fillStyle=grad; ctx.fillRect(0,0,c.width,c.height);
+  ctx.fillStyle='rgba(244,200,165,.95)'; ctx.beginPath(); ctx.ellipse(420,420,135,170,0,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='rgba(83,56,44,.95)'; ctx.fillRect(260,570,330,230);
+  ctx.fillStyle='rgba(95,130,95,.95)'; ctx.fillRect(0,690,c.width,210);
+  ctx.fillStyle='rgba(255,223,170,.4)'; ctx.beginPath(); ctx.arc(970,180,120,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='rgba(225,140,90,.52)'; ctx.fillRect(780,250,340,390);
+  ctx.fillStyle='rgba(52,78,120,.45)'; ctx.fillRect(760,0,520,260);
+  const img=new Image();
+  img.onload=()=>{ state.target=img; showPreview(els.targetPreview,els.targetPreviewWrap,els.targetPlaceholder,img); els.analyzeBtn.disabled=false; };
+  img.src=c.toDataURL('image/png');
+}
+
+async function handleFile(input, type){
+  const file=input.files?.[0]; if(!file) return;
+  try{
+    const img=await loadImageFromFile(file); state[type]=img;
+    if(type==='target') showPreview(els.targetPreview,els.targetPreviewWrap,els.targetPlaceholder,img);
+    else { showPreview(els.sourcePreview,els.sourcePreviewWrap,els.sourcePlaceholder,img); refreshComparePreview(); }
+    els.analyzeBtn.disabled=!state.target;
+  }catch(e){ alert('이미지를 불러오지 못했습니다. 다른 파일로 다시 시도해 주세요.'); }
+}
+
+function updateCompareUIFromSlider(){
+  state.compare = Number(els.compareSlider.value);
+  updateCompareUI();
+  renderBuiltinPresets();
+}
+function resetAll(){
+  state.target=null; state.source=null; state.analysis=null; state.ranking=[]; state.selectedCandidate=null; state.aiTopCandidate=null; state.currentPreviewCandidate=null; state.liveAdjustments=null; state.lockedCandidateId=null; state.compare=50;
+  els.compareSlider.value=50;
+  els.targetInput.value=''; els.sourceInput.value=''; els.targetPlaceholder.style.display=''; els.sourcePlaceholder.style.display=''; els.targetPreviewWrap.classList.remove('active'); els.sourcePreviewWrap.classList.remove('active'); els.analyzeBtn.disabled=true;
+  ['statLuma','statSat','statContrast','statWarm','statTint','statScene'].forEach(id=>els[id].textContent='-');
+  els.modeChips.innerHTML=''; els.modeDetail.innerHTML=''; els.applyList.innerHTML=''; els.liveGrid.innerHTML=''; els.deltaDetail.innerHTML=''; els.warningDetail.innerHTML=''; els.priorityList.innerHTML=''; els.aiDetail.innerHTML=''; els.reportBox.textContent='분석 전입니다.'; els.tipsList.innerHTML='';
+  els.candidateGrid.innerHTML=''; setLockState(null);
+  [els.compareBaseCanvas, els.compareAppliedCanvas].forEach(c=>{const ctx=c.getContext('2d'); c.width=c.clientWidth*(window.devicePixelRatio||1); c.height=c.clientHeight*(window.devicePixelRatio||1); ctx.fillStyle='#02060f'; ctx.fillRect(0,0,c.width,c.height);});
+  els.previewNote.textContent='아직 샤오미 원본 테스트 이미지가 없습니다. 업로드 후 분석하면 한 화면 비교 프리뷰가 생성됩니다.';
+  els.copyTextBtn.disabled=true; els.copyJsonBtn.disabled=true; els.downloadTxtBtn.disabled=true;
+  updateCompareUI();
+  renderBuiltinPresets();
+}
+async function copyText(text){ try{ await navigator.clipboard.writeText(text); }catch{ alert('복사에 실패했습니다. 브라우저 권한을 확인해 주세요.'); } }
+function downloadTextFile(filename,text){ const blob=new Blob([text],{type:'text/plain;charset=utf-8'}), url=URL.createObjectURL(blob), a=document.createElement('a'); a.href=url; a.download=filename; a.click(); URL.revokeObjectURL(url); }
+
+
+function makePresetCandidate(preset){
+  const baseAnalysis = state.analysis;
+  let candidate;
+  if(baseAnalysis){
+    candidate = buildCandidateForFilter(baseAnalysis, preset.style, preset.filter, 0);
+    candidate.sliders = cloneObj(preset.sliders);
+  } else {
+    candidate = {
+      id: uid(),
+      style: preset.style,
+      filter: preset.filter,
+      confidence: preset.match==='높음'?0.84:(preset.match==='중상'?0.74:0.66),
+      cameraSuggestion: '23mm 메인 기본',
+      awbStrategy: 'AWB 유지',
+      sliders: cloneObj(preset.sliders),
+      notes: [],
+      tips: [],
+      warnings: [],
+      summary: {brightness:'중간', saturation:'균형형', contrast:'중간'}
+    };
+  }
+  candidate.id = `builtin-${preset.id}`;
+  candidate.cameraSuggestion = candidate.cameraSuggestion || '23mm 메인 기본';
+  candidate.awbStrategy = candidate.awbStrategy || 'AWB 유지';
+  candidate.notes = [...(candidate.notes||[]), `${preset.group} 계열의 대표 색 성향을 샤오미 17 울트라 기준으로 매핑한 프리셋입니다.`, preset.description, `재현성 평가: ${preset.match}. ${preset.compare}`];
+  candidate.tips = [...(candidate.tips||[]), `현재 프리셋 원형: ${preset.sourceTone}`, '완전 복제보다 방향성 매칭 프리셋으로 보는 것이 좋습니다.'];
+  candidate.builtinMeta = preset;
+  return candidate;
+}
+
+function applyBuiltinPreset(id){
+  const preset = BUILTIN_PRESETS.find(p=>p.id===id);
+  if(!preset) return;
+  const candidate = makePresetCandidate(preset);
+  state.selectedCandidate = candidate;
+  state.currentPreviewCandidate = candidate;
+  state.liveAdjustments = cloneObj(candidate.sliders);
+  state.lockedCandidateId = candidate.id;
+  setLockState(candidate.id);
+  els.presetName.value = preset.name;
+  els.presetMemo.value = `[내장 프리셋] ${preset.group} · ${preset.description}`;
+  renderCurrentSelection();
+  refreshComparePreview();
+  renderBuiltinPresets();
+  const focusEl = document.getElementById('liveFocusArea');
+}
+
+function renderBuiltinPresets(){
+  const html = BUILTIN_PRESETS.map(p=>{
+    const active = getSelectedCandidate()?.id === `builtin-${p.id}`;
+    return `<div class="preset-item" style="${active?'border-color:var(--brand); box-shadow:0 0 0 2px rgba(121,215,255,.14) inset;':''}">
+      <div class="preset-head">
+        <div>
+          <div class="preset-name">${p.name}</div>
+          <div class="preset-meta">${p.group} · ${p.style} / ${p.filter} · 재현성 ${p.match}</div>
+        </div>
+      </div>
+      <div class="tiny" style="margin-top:8px; line-height:1.6">${p.description}</div>
+      <div class="tiny" style="margin-top:8px; line-height:1.6"><b>원형 특징:</b> ${p.sourceTone}</div>
+      <div class="tiny" style="margin-top:8px; line-height:1.6"><b>샤오미 비교:</b> ${p.compare}</div>
+      <div class="preset-actions">
+        <button class="secondary" data-builtin-load="${p.id}">현재 선택안으로 적용</button>
+      </div>
+    </div>`;
+  }).join('');
+  if(els.builtinPresetList) els.builtinPresetList.innerHTML = html;
+  if(els.builtinPresetListInline) els.builtinPresetListInline.innerHTML = html;
+  const bindRoot = root => {
+    if(!root) return;
+    [...root.querySelectorAll('[data-builtin-load]')].forEach(btn=>btn.addEventListener('click', ()=>applyBuiltinPreset(btn.dataset.builtinLoad)));
+  };
+  bindRoot(els.builtinPresetList);
+  bindRoot(els.builtinPresetListInline);
+}
+
+// Presets
+function loadPresets(){ try{ return JSON.parse(localStorage.getItem('xiaomi17ultra-presets-v2')||'[]'); }catch{ return []; } }
+function savePresets(list){ localStorage.setItem('xiaomi17ultra-presets-v2', JSON.stringify(list)); }
+function collectPresetPayload(favorite=false){
+  const c=getSelectedCandidate(); if(!c) return null;
+  return {
+    id:uid(),
+    createdAt:new Date().toISOString(),
+    name:els.presetName.value.trim() || `${c.filter} / ${c.style}`,
+    memo:els.presetMemo.value.trim(),
+    favorite,
+    base:getBaseline(),
+    scenePriority:getPriorityMode(),
+    style:c.style,
+    filter:c.filter,
+    sliders:cloneObj(getCurrentTweak())
+  };
+}
+function renderPresets(){
+  const list=loadPresets();
+  if(!list.length){ els.presetList.innerHTML='<div class="tiny">저장된 프리셋이 없습니다.</div>'; return; }
+  els.presetList.innerHTML=list.sort((a,b)=>(b.favorite-a.favorite)||b.createdAt.localeCompare(a.createdAt)).map(p=>`
+    <div class="preset-item">
+      <div class="preset-head">
+        <div><div class="preset-name">${p.favorite?'★ ':''}${p.name}</div><div class="preset-meta">${p.style} / ${p.filter} · ${p.base.style} / ${p.base.filter} · ${new Date(p.createdAt).toLocaleString('ko-KR')}</div></div>
+      </div>
+      ${p.memo?`<div class="tiny" style="margin-top:8px">${p.memo}</div>`:''}
+      <div class="preset-actions">
+        <button class="secondary" data-load="${p.id}">불러오기</button>
+        <button class="secondary" data-fav="${p.id}">${p.favorite?'즐겨찾기 해제':'즐겨찾기'}</button>
+        <button class="ghost" data-del="${p.id}">삭제</button>
+      </div>
+    </div>`).join('');
+  [...els.presetList.querySelectorAll('[data-load]')].forEach(btn=>btn.addEventListener('click',()=>loadPreset(btn.dataset.load)));
+  [...els.presetList.querySelectorAll('[data-fav]')].forEach(btn=>btn.addEventListener('click',()=>toggleFavorite(btn.dataset.fav)));
+  [...els.presetList.querySelectorAll('[data-del]')].forEach(btn=>btn.addEventListener('click',()=>deletePreset(btn.dataset.del)));
+}
+function loadPreset(id){
+  const list=loadPresets(); const p=list.find(x=>x.id===id); if(!p) return;
+  els.baselineStyle.value=p.base.style; els.baselineFilter.value=p.base.filter; els.scenePriority.value=p.scenePriority || 'balanced';
+  if(state.analysis){
+    let c=state.ranking.find(x=>x.filter===p.filter && x.style===p.style);
+    if(!c){
+      c=buildCandidateForFilter(state.analysis, p.style, p.filter, 0);
+      state.ranking.unshift(c);
+    }
+    state.selectedCandidate=c; state.currentPreviewCandidate=c; state.liveAdjustments=cloneObj(p.sliders||c.sliders);
+    renderCurrentSelection(); refreshComparePreview(); renderCandidateThumbs();
+  }
+  els.presetName.value=p.name; els.presetMemo.value=p.memo||'';
+}
+function toggleFavorite(id){
+  const list=loadPresets().map(p=>p.id===id?{...p,favorite:!p.favorite}:p); savePresets(list); renderPresets();
+}
+function deletePreset(id){
+  const list=loadPresets().filter(p=>p.id!==id); savePresets(list); renderPresets();
+}
+
+function bindEvents(){
+  setupDrop(els.targetDrop, els.targetInput); setupDrop(els.sourceDrop, els.sourceInput);
+  els.targetInput.addEventListener('change', ()=>handleFile(els.targetInput,'target'));
+  els.sourceInput.addEventListener('change', ()=>handleFile(els.sourceInput,'source'));
+  els.analyzeBtn.addEventListener('click', handleAnalyze);
+  els.clearBtn.addEventListener('click', resetAll);
+  els.loadDemoBtn.addEventListener('click', buildDemoImage);
+  els.compareSlider.addEventListener('input', updateCompareUIFromSlider);
+  els.copyTextBtn.addEventListener('click', ()=>copyText(buildReport()));
+  els.copyJsonBtn.addEventListener('click', ()=>copyText(JSON.stringify({analysis:state.analysis, selected:getSelectedCandidate(), tweak:getCurrentTweak(), ranking:state.ranking},null,2)));
+  els.downloadTxtBtn.addEventListener('click', ()=>downloadTextFile('xiaomi17ultra_color_match_report.txt', buildReport()));
+  els.simpleModeBtn.addEventListener('click', ()=>setUIMode('simple'));
+  els.proModeBtn.addEventListener('click', ()=>setUIMode('pro'));
+  [els.baselineStyle, els.baselineFilter].forEach(el=>el.addEventListener('change', ()=>{ renderCurrentSelection(); refreshComparePreview(); }));
+  els.scenePriority.addEventListener('change', ()=>{ if(state.analysis) handleAnalyze(); });
+  els.lockSelectionBtn.addEventListener('click', ()=>{ const c=getSelectedCandidate(); if(c){ setLockState(c.id);} });
+  els.unlockSelectionBtn.addEventListener('click', ()=>setLockState(null));
+  els.revertAISelectionBtn.addEventListener('click', ()=>{ if(state.aiTopCandidate){ setLockState(null); selectCandidate(state.aiTopCandidate.id,true); } });
+  els.resetToSelectedBtn.addEventListener('click', ()=>resetLiveToCandidate(getSelectedCandidate()));
+  els.resetToAIBtn.addEventListener('click', ()=>resetLiveToCandidate(state.aiTopCandidate));
+  els.resetZeroBtn.addEventListener('click', ()=>{ if(!state.liveAdjustments) return; Object.keys(state.liveAdjustments).forEach(k=>state.liveAdjustments[k]=k==='exposure'?0:0); renderLiveGrid(); renderApplyList(); renderDeltaAndWarnings(); refreshComparePreview(); });
+  els.savePresetBtn.addEventListener('click', ()=>{ const payload=collectPresetPayload(false); if(!payload) return; const list=loadPresets(); list.push(payload); savePresets(list); renderPresets(); });
+  els.saveFavoriteBtn.addEventListener('click', ()=>{ const payload=collectPresetPayload(true); if(!payload) return; const list=loadPresets(); list.push(payload); savePresets(list); renderPresets(); });
+  els.clearPresetsBtn.addEventListener('click', ()=>{ if(confirm('저장된 프리셋을 모두 삭제할까요?')){ savePresets([]); renderPresets(); } });
+  window.addEventListener('resize', ()=>{ if(state.target) drawContain(state.target, els.targetPreview, 8); if(state.source) drawContain(state.source, els.sourcePreview, 8); refreshComparePreview(); });
+}
+
+bindEvents();
+setUIMode('simple');
+renderBuiltinPresets();
+renderPresets();
+resetAll();
+</script>
+</body>
+</html>
