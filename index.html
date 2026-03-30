@@ -47,7 +47,7 @@ button.secondary{background:#14203b;color:var(--text);border:1px solid var(--lin
 button.ghost{background:transparent;color:var(--text);border:1px solid var(--line);box-shadow:none}
 button:disabled{opacity:.55;cursor:not-allowed}
 .control-grid,.stats,.range-grid,.mini-grid{display:grid;gap:10px}
-.control-grid{grid-template-columns:1fr 1fr 1fr}
+.control-grid{grid-template-columns:1fr 1fr 1fr 1fr}
 .stats{grid-template-columns:repeat(3,1fr)}
 .range-grid{grid-template-columns:repeat(2,1fr)}
 .mini-grid{grid-template-columns:1fr 1fr}
@@ -170,6 +170,7 @@ details.accordion[open] summary::after{content:'－'}
         <div class="badge">Live Tweak</div>
         <div class="badge">프리셋 저장/즐겨찾기</div>
         <div class="badge">AI+ 분석</div>
+        <div class="badge">ZEISS / Fujifilm 룩 엔진</div>
       </div>
     </div>
     <div class="card hero-side">
@@ -246,6 +247,17 @@ details.accordion[open] summary::after{content:'－'}
             <option value="sky">하늘 우선</option>
             <option value="mood">무드 우선</option>
             <option value="accuracy">정확도 우선</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="familyBias">목표 색감 계열</label>
+          <select id="familyBias">
+            <option value="auto" selected>Auto 감지</option>
+            <option value="xiaomi">Xiaomi Leica</option>
+            <option value="zeiss">vivo ZEISS</option>
+            <option value="fujifilm">Fujifilm Film Simulation</option>
+            <option value="ricoh">RICOH Positive Film</option>
+            <option value="neutral">중립 / 기준 재현</option>
           </select>
         </div>
       </div>
@@ -1408,6 +1420,520 @@ function bindEvents(){
   els.clearPresetsBtn.addEventListener('click', ()=>{ if(confirm('저장된 프리셋을 모두 삭제할까요?')){ savePresets([]); renderPresets(); } });
   window.addEventListener('resize', ()=>{ if(state.target) drawContain(state.target, els.targetPreview, 8); if(state.source) drawContain(state.source, els.sourcePreview, 8); refreshComparePreview(); });
 }
+
+
+// ===== Patch v2 : Xiaomi + ZEISS + Fujifilm look engine =====
+els.familyBias = document.getElementById('familyBias');
+
+BUILTIN_PRESETS.push(
+  {
+    id:'zeiss_vivid_clean',
+    group:'vivo / ZEISS',
+    name:'vivo ZEISS Vivid',
+    style:'Leica Vibrant',
+    filter:'Leica Vivid',
+    sliders:{warmCool:-1,tint:-1,saturation:4,contrast:-2,sharpness:-1,exposure:-0.2},
+    match:'중상',
+    sourceTone:'파랑/초록이 또렷하고 피부는 과하지 않게 정리되는 선명 계열',
+    description:'ZEISS Vivid Color 방향을 샤오미에서 쓰기 쉬운 형태로 근사한 프리셋.',
+    compare:'풍경과 스냅에서 반응이 좋지만, 실내 인물은 채도를 한 단계 낮추는 편이 안전합니다.',
+    lookModel:'zeiss-vivid', lookFamily:'ZEISS'
+  },
+  {
+    id:'zeiss_textured',
+    group:'vivo / ZEISS',
+    name:'vivo ZEISS Textured',
+    style:'Leica Authentic',
+    filter:'Movie',
+    sliders:{warmCool:1,tint:-1,saturation:-4,contrast:3,sharpness:1,exposure:-0.2},
+    match:'중상',
+    sourceTone:'웜톤 질감, 깊은 섀도, 건축/야경에 강한 마이크로 콘트라스트',
+    description:'ZEISS Textured Color의 깊은 섀도와 질감 중심 룩.',
+    compare:'건물, 야경, 거리 사진에서 특히 잘 맞습니다.',
+    lookModel:'zeiss-textured', lookFamily:'ZEISS'
+  },
+  {
+    id:'fuji_eterna',
+    group:'Fujifilm',
+    name:'Fujifilm ETERNA',
+    style:'Leica Authentic',
+    filter:'Movie',
+    sliders:{warmCool:-2,tint:-1,saturation:-8,contrast:-2,sharpness:-2,exposure:-0.1},
+    match:'중상',
+    sourceTone:'저채도, 넓은 계조, 영상 친화형 시네마',
+    description:'ETERNA의 플랫하고 유연한 시네마 톤을 겨냥한 프리셋.',
+    compare:'하이라이트와 피부를 동시에 지키기 좋아 영상 룩 참고용으로도 좋습니다.',
+    lookModel:'fuji-eterna', lookFamily:'Fujifilm'
+  },
+  {
+    id:'fuji_nostalgic_neg',
+    group:'Fujifilm',
+    name:'Fujifilm Nostalgic Neg.',
+    style:'Leica Authentic',
+    filter:'Gold Vibes',
+    sliders:{warmCool:4,tint:0,saturation:-2,contrast:2,sharpness:-1,exposure:-0.1},
+    match:'중상',
+    sourceTone:'앰버 하이라이트, 리치한 섀도, 뉴컬러 계열',
+    description:'Nostalgic Neg.의 따뜻한 하이라이트와 깊은 그림자 방향성.',
+    compare:'노을, 카페, 레트로 스냅에 잘 맞습니다.',
+    lookModel:'fuji-nostalgic-neg', lookFamily:'Fujifilm'
+  },
+  {
+    id:'fuji_pro_neg_std',
+    group:'Fujifilm',
+    name:'Fujifilm Pro Neg. Std',
+    style:'Leica Authentic',
+    filter:'Leica Natural',
+    sliders:{warmCool:0,tint:0,saturation:-4,contrast:-2,sharpness:-2,exposure:0},
+    match:'높음',
+    sourceTone:'스튜디오 인물, 중립적이고 부드러운 피부 계조',
+    description:'후지 Pro Neg. Std 계열의 부드러운 인물 지향 룩.',
+    compare:'인물 재현 안정성이 높습니다.',
+    lookModel:'fuji-pro-neg-std', lookFamily:'Fujifilm'
+  }
+);
+
+function getFamilyBias(){ return els.familyBias?.value || 'auto'; }
+function softShoulder(l, strength=0.12, start=0.72){
+  if(l<=start) return l;
+  const t = clamp((l-start)/(1-start),0,1);
+  return l - t*t*strength;
+}
+function satVsLumaFactor(l, amount=0.12, pivot=0.68){
+  if(l<=pivot) return 1;
+  const t = clamp((l-pivot)/(1-pivot),0,1);
+  return 1 - amount*t;
+}
+function shiftHueSimple(r,g,b, cfg={}){
+  let nr=r, ng=g, nb=b;
+  const l=0.2126*r+0.7152*g+0.0722*b;
+  if(cfg.redToOrange){
+    const red = clamp(r - Math.max(g,b), 0, 1);
+    ng += red * cfg.redToOrange * 0.15;
+    nb -= red * cfg.redToOrange * 0.04;
+  }
+  if(cfg.yellowToGreen){
+    const yellow = clamp(Math.min(r,g) - b, 0, 1);
+    nr -= yellow * cfg.yellowToGreen * 0.12;
+    ng += yellow * cfg.yellowToGreen * 0.08;
+  }
+  if(cfg.greenDeep){
+    const green = clamp(g - Math.max(r,b), 0, 1);
+    ng -= green * cfg.greenDeep * 0.05;
+    nb += green * cfg.greenDeep * 0.02;
+  }
+  if(cfg.blueToCyan){
+    const blue = clamp(b - Math.max(r,g), 0, 1);
+    ng += blue * cfg.blueToCyan * 0.10;
+    nr -= blue * cfg.blueToCyan * 0.04;
+  }
+  if(cfg.blueToMagenta){
+    const blue = clamp(b - Math.max(r,g), 0, 1);
+    nr += blue * cfg.blueToMagenta * 0.08;
+  }
+  if(cfg.brownRed){
+    const red = clamp(r - Math.max(g,b), 0, 1);
+    ng += red * cfg.brownRed * 0.07;
+    nb -= red * cfg.brownRed * 0.03;
+  }
+  if(cfg.shadowCool && l<0.45){
+    const t=(0.45-l)/0.45;
+    nr -= cfg.shadowCool*0.025*t;
+    ng += cfg.shadowCool*0.01*t;
+    nb += cfg.shadowCool*0.04*t;
+  }
+  if(cfg.highlightAmber && l>0.62){
+    const t=(l-0.62)/0.38;
+    nr += cfg.highlightAmber*0.03*t;
+    ng += cfg.highlightAmber*0.015*t;
+    nb -= cfg.highlightAmber*0.025*t;
+  }
+  return [clamp(nr,0,1),clamp(ng,0,1),clamp(nb,0,1)];
+}
+function detectTargetLookSystem(m){
+  const p=getFamilyBias();
+  if(p!=='auto') return p;
+  if(m.skinScore>0.14 && m.avgS<0.5 && m.contrast<0.2) return 'zeiss';
+  if(m.avgS>0.56 && (m.skyScore+m.greenScore)>0.2) return 'fujifilm';
+  if(m.avgS<0.38 && m.contrast>0.2) return 'fujifilm';
+  if(m.avgS<0.46 && m.highlights>0.18 && m.skinScore>0.08) return 'zeiss';
+  return 'xiaomi';
+}
+function chooseLookModel(m, family, style, filter){
+  if(family==='neutral') return 'neutral';
+  if(family==='ricoh') return 'ricoh-positive';
+  if(family==='zeiss'){
+    if(['Movie','Monsoon','Scarlet'].includes(filter)) return 'zeiss-textured';
+    if(['Leica Vivid','VIV','Vivid'].includes(filter) || style==='Leica Vibrant') return 'zeiss-vivid';
+    return 'zeiss-natural';
+  }
+  if(family==='fujifilm'){
+    if(filter==='Movie') return m.avgS<0.30 ? 'fuji-eterna' : 'fuji-classic-chrome';
+    if(filter==='Negative') return 'fuji-classic-neg';
+    if(filter==='Gold Vibes') return 'fuji-nostalgic-neg';
+    if(['Leica Vivid','VIV','Vivid'].includes(filter) || m.avgS>0.58) return 'fuji-velvia';
+    if(filter==='Positive' && m.skinScore>0.10) return 'fuji-astia';
+    if(['Leica Natural','NAT'].includes(filter) && m.skinScore>0.12) return 'fuji-pro-neg-std';
+    if(['Leica Natural','NAT','Original'].includes(filter) && m.avgS<0.46) return 'fuji-reala-ace';
+    return 'fuji-provia';
+  }
+  if(style==='Leica Vibrant') return 'xiaomi-vibrant';
+  if(filter==='Original' || filter==='Leica Natural' || filter==='NAT') return 'xiaomi-neutral';
+  return 'xiaomi-authentic';
+}
+
+function classifyMood(m){
+  const family = detectTargetLookSystem(m);
+  return {
+    vividScore: clamp((m.avgS - 0.34) * 1.9 + (m.redScore + m.skyScore + m.greenScore) * 0.7 + (m.avgL > 0.48 ? 0.08 : 0), 0, 1),
+    cinematicScore: clamp((0.45 - m.avgS) * 1.25 + m.contrast * 1.55 + (m.shadows > 0.22 ? 0.18 : 0), 0, 1),
+    portraitScore: clamp(m.skinScore * 2.4 + (m.avgS < 0.52 ? 0.12 : 0) + (m.edge < 0.08 ? 0.08 : 0), 0, 1),
+    family
+  };
+}
+
+function scoreFilter(filter,m){
+  const base = (function(){
+    const mood=classifyMood(m); const p=getPriorityMode();
+    let s=0, reasons=[];
+    function add(v, reason){s+=v; if(reason) reasons.push(reason);}
+    if(filter==='Original'){ add(0.52, '안전한 기준점'); if(m.avgS>0.42&&m.avgS<0.56) add(0.1,'균형 채도'); }
+    if(filter==='Positive'){ add(0.45,'가벼운 생기'); if(m.skinScore>0.12) add(0.22,'피부 비중'); if(m.warmth>0.02) add(0.08,'따뜻한 장면'); }
+    if(filter==='Negative'){ add(0.42,'절제형 필름 무드'); if(m.avgS<0.40) add(0.22,'낮은 채도'); if(m.shadows>0.18) add(0.12,'그림자 존재감'); }
+    if(filter==='VIV' || filter==='Vivid'){ add(0.38,'강색 계열'); if(m.avgS>0.54) add(0.25,'고채도 장면'); if(m.redScore+m.skyScore+m.greenScore>0.32) add(0.12,'색 밀도 풍부'); }
+    if(filter==='NAT' || filter==='Leica Natural'){ add(0.5,'담백한 재현'); if(m.avgS<0.50) add(0.15,'과채도 억제'); }
+    if(filter==='Movie'){ add(0.4,'시네마 무드'); if(m.avgS<0.42) add(0.2,'저채도'); if(m.contrast>0.18) add(0.08,'명암 유지'); }
+    if(filter==='Gold Vibes'){ add(0.35,'웜 하이라이트'); if(m.warmth>0.08) add(0.22,'따뜻한 톤'); if(m.avgL>0.46) add(0.1,'밝은 장면'); }
+    if(filter==='Scarlet'){ add(0.28,'레드/브라운 무드'); if(m.redScore>0.11) add(0.26,'레드 비중'); if(m.skinScore>0.08) add(0.08,'피부와 상성'); }
+    if(filter==='Teal Mist'){ add(0.32,'청록 안개'); if(m.skyScore>0.12) add(0.22,'하늘/블루'); if(m.warmth<-0.03) add(0.12,'차가운 톤'); }
+    if(filter==='Monsoon'){ add(0.33,'차갑고 눅진한 분위기'); if(m.avgS<0.44) add(0.16,'낮은 채도'); if(m.shadows>0.20) add(0.16,'비·흐림 무드'); }
+    if(filter==='Leica Vivid'){ add(0.36,'Leica 강색'); if(m.avgS>0.56) add(0.22,'높은 채도'); }
+    if(filter==='Leica Sepia'){ add(0.16,'웜 빈티지'); if(m.warmth>0.10 && m.avgS<0.46 && m.avgL>0.40) add(0.30,'웜하고 절제된 장면'); }
+    if(filter==='Leica Blue'){ add(-0.18,'매우 제한적 사용'); if(m.avgS<0.10 && m.warmth<-0.08 && m.skyScore>0.12) add(0.60,'저채도·쿨톤·블루 조건 일치'); else add(-0.3,'일반 컬러 장면에 부적합'); }
+    if(filter==='Leica BW Natural'){ add(-0.05,'흑백 계열'); if(m.avgS<0.06) add(0.62,'색 정보가 거의 없음'); else add(-0.25,'컬러 정보 풍부'); }
+    if(filter==='Leica BW HC'){ add(-0.08,'강한 흑백 계열'); if(m.avgS<0.06 && m.contrast>0.2) add(0.68,'저채도+강한 명암'); else add(-0.26,'컬러/낮은 명암 부적합'); }
+    if(p==='skin'){
+      if(filter==='Positive' || filter==='Leica Natural') add(0.12,'피부 우선 보정');
+      if(filter==='VIV' || filter==='Vivid' || filter==='Teal Mist') add(-0.07,'피부 우선과 상충');
+    }
+    if(p==='sky'){
+      if(filter==='Teal Mist' || filter==='Leica Blue' || filter==='Monsoon') add(0.1,'하늘 우선');
+      if(filter==='Gold Vibes') add(-0.03,'하늘 우선과는 거리');
+    }
+    if(p==='mood'){
+      if(['Movie','Monsoon','Teal Mist','Scarlet','Gold Vibes'].includes(filter)) add(0.12,'무드 우선');
+    }
+    if(p==='accuracy'){
+      if(['Original','NAT','Leica Natural','Positive'].includes(filter)) add(0.12,'정확도 우선');
+      if(['VIV','Vivid','Leica Vivid','Gold Vibes','Scarlet'].includes(filter)) add(-0.06,'과한 캐릭터성');
+    }
+    return {filter, score:s, reason:reasons.slice(0,4).join(' · ') || FILTER_INFO[filter]?.desc || '', family:mood.family};
+  })();
+
+  const family = base.family;
+  if(family==='zeiss'){
+    if(['Leica Natural','NAT','Original','Positive'].includes(filter)) base.score += 0.14;
+    if(['Leica Vivid','VIV','Vivid'].includes(filter)) base.score += 0.05;
+    if(['Gold Vibes','Scarlet','Leica Sepia'].includes(filter)) base.score -= 0.08;
+    base.reason += ' · ZEISS 계열 매칭 반영';
+  }else if(family==='fujifilm'){
+    if(['Movie','Negative','Positive','Original','Leica Natural','NAT','Leica Vivid','VIV','Vivid','Gold Vibes'].includes(filter)) base.score += 0.1;
+    if(['Teal Mist','Leica Blue'].includes(filter)) base.score -= 0.04;
+    base.reason += ' · Fujifilm 계열 매칭 반영';
+  }else if(family==='neutral'){
+    if(['Original','NAT','Leica Natural'].includes(filter)) base.score += 0.14;
+    if(['Leica Vivid','VIV','Vivid','Scarlet','Gold Vibes'].includes(filter)) base.score -= 0.08;
+  }
+  return base;
+}
+
+function buildCandidateForFilter(m, style, filter, rankIndex=0){
+  let warmCool = clamp(Math.round(m.warmth * 140), -28, 28);
+  let tint = clamp(Math.round(-m.tint * 180), -20, 20);
+  let saturation = clamp(Math.round((m.avgS - 0.42) * 120), -24, 24);
+  let contrast = clamp(Math.round((m.contrast - 0.21) * 170), -24, 24);
+  let sharpness = clamp(Math.round(((m.edge - 0.01)/(0.16-0.01)) * 28 - 8), -10, 20);
+  let exposure = clamp(round((m.avgL - 0.5) * 2.8, 1), -1.8, 1.8);
+  const family = detectTargetLookSystem(m);
+  const lookModel = chooseLookModel(m, family, style, filter);
+
+  if(style === 'Leica Vibrant') saturation = clamp(saturation + 3, -24, 24);
+  if(style === 'Leica Authentic') contrast = clamp(contrast + 2, -24, 24);
+  if(['Leica Vivid','VIV','Vivid'].includes(filter)) saturation = clamp(saturation + 5, -24, 24);
+  if(['Leica Natural','NAT'].includes(filter)) saturation = clamp(saturation - 1, -24, 24);
+  if(filter === 'Movie'){ saturation = clamp(saturation - 4, -24, 24); contrast = clamp(contrast + 2, -24, 24); tint = clamp(tint - 2, -20, 20); }
+  if(filter === 'Gold Vibes'){ warmCool = clamp(warmCool + 10, -28, 28); saturation = clamp(saturation + 2, -24, 24); }
+  if(filter === 'Scarlet'){ warmCool = clamp(warmCool + 5, -28, 28); saturation = clamp(saturation - 2, -24, 24); contrast = clamp(contrast + 2, -24, 24); tint = clamp(tint + 1, -20, 20); }
+  if(filter === 'Teal Mist'){ warmCool = clamp(warmCool - 8, -28, 28); tint = clamp(tint - 5, -20, 20); saturation = clamp(saturation - 3, -24, 24); contrast = clamp(contrast - 2, -24, 24); }
+  if(filter === 'Monsoon'){ warmCool = clamp(warmCool - 5, -28, 28); tint = clamp(tint - 2, -20, 20); saturation = clamp(saturation - 4, -24, 24); }
+  if(filter === 'Leica Sepia'){ warmCool = clamp(warmCool + 8, -28, 28); saturation = clamp(saturation - 3, -24, 24); }
+  if(filter === 'Leica Blue'){ warmCool = clamp(warmCool - 14, -28, 28); tint = clamp(tint - 4, -20, 20); saturation = clamp(saturation - 8, -24, 24); }
+  if(m.skinScore > 0.14) sharpness = clamp(sharpness - 2, -10, 20);
+  if(m.highlights > 0.24) exposure = clamp(exposure - 0.2, -1.8, 1.8);
+  if(m.shadows > 0.28 && m.avgL < 0.4) exposure = clamp(exposure + 0.2, -1.8, 1.8);
+
+  if(family==='zeiss'){
+    saturation = clamp(saturation - 2, -24, 24);
+    contrast = clamp(contrast - 3, -24, 24);
+    exposure = clamp(exposure - 0.2, -1.8, 1.8);
+    sharpness = clamp(sharpness - 2, -10, 20);
+    if(m.skinScore>0.12){ tint = clamp(tint - 1, -20, 20); }
+  }else if(family==='fujifilm'){
+    if(lookModel==='fuji-velvia'){ saturation = clamp(saturation + 5, -24, 24); contrast = clamp(contrast + 3, -24, 24); exposure = clamp(exposure - 0.1, -1.8, 1.8); }
+    if(lookModel==='fuji-astia'){ contrast = clamp(contrast - 2, -24, 24); sharpness = clamp(sharpness - 2, -10, 20); warmCool = clamp(warmCool + 1, -28, 28); }
+    if(lookModel==='fuji-classic-chrome' || lookModel==='fuji-eterna'){ saturation = clamp(saturation - 4, -24, 24); }
+    if(lookModel==='fuji-reala-ace'){ saturation = clamp(saturation - 2, -24, 24); contrast = clamp(contrast + 1, -24, 24); }
+  }
+
+  const confidence = clamp(0.5 + (1 - Math.abs(0.46 - m.avgS)) * 0.16 + (m.dynamicRange * 0.18) + (Math.min(0.18, m.edge) * 0.45) - m.uncertainty*0.4 - rankIndex*0.03 + (family!=='xiaomi'?0.02:0), 0.35, 0.93);
+  const cameraSuggestion = m.skinScore > 0.16 ? '75–100mm 망원 우선' : (m.skyScore + m.greenScore > 0.28 ? '23mm 메인 우선' : '23mm 메인 기본');
+  const awbStrategy = Math.abs(m.warmth) < 0.04 ? 'AWB 유지' : (m.warmth > 0 ? 'AWB 유지 후 필요 시 약간 따뜻하게' : 'AWB 유지 후 필요 시 약간 차갑게');
+  const notes = [];
+  if(family==='zeiss') notes.push('ZEISS 계열로 판단되어 하이라이트 보존, 낮은 대비, 깨끗한 피부/하늘 방향을 우선했습니다.');
+  if(family==='fujifilm') notes.push('Fujifilm 계열로 판단되어 필름 시뮬레이션 성향의 색 행렬과 톤 곡선 방향을 반영했습니다.');
+  if(family==='xiaomi') notes.push(style === 'Leica Vibrant' ? '스타일은 색 밀도와 시각적 임팩트를 우선하는 방향입니다.' : '스타일은 무드와 명암을 살리는 방향이 유리합니다.');
+  if(['Movie','Monsoon','Teal Mist'].includes(filter)) notes.push('이 필터군은 atmosphere 계열로 색온도와 틴트 반영이 큽니다.');
+  if(['Gold Vibes','Scarlet'].includes(filter)) notes.push('웜/레드 계열의 감정선을 살리는 데 유리합니다.');
+  if(m.skinScore > 0.12) notes.push('인물 비중이 있어 피부 안정감을 우선했습니다.');
+  if(m.skyScore > 0.14) notes.push('블루톤 정보가 많아 하늘 보존 쪽으로 조정했습니다.');
+  if(m.dynamicRange > 0.62) notes.push('명암 범위가 넓어 하이라이트 롤오프 중심으로 설계했습니다.');
+  if(!notes.length) notes.push('균형형 장면이라 극단 설정보다 미세 조정형 추천이 적합합니다.');
+  const tips = [`${cameraSuggestion}으로 시작하세요.`, `${awbStrategy}.`];
+  if(family==='zeiss') tips.push('ZEISS 계열은 채도보다 하이라이트 보호와 피부 밝기 유지가 먼저입니다.');
+  if(lookModel==='fuji-reala-ace') tips.push('Reala Ace 계열은 하이라이트에서 채도를 과도하게 올리지 않는 편이 핵심입니다.');
+  if(lookModel==='fuji-velvia') tips.push('Velvia 계열은 녹색/하늘이 먼저 과해지므로 채도와 대비를 함께 점검하세요.');
+  if(lookModel==='fuji-classic-chrome' || lookModel==='fuji-eterna') tips.push('Classic Chrome / Eterna 계열은 채도보다 블루-시안 그림자와 소프트 숄더가 더 중요합니다.');
+
+  const warnings = [];
+  if(confidence < 0.58) warnings.push({level:'warn', text:'분석 신뢰도가 낮습니다. 추천을 시작점으로 보고 수동 튜닝을 권장합니다.'});
+  if(m.uncertainty > 0.18) warnings.push({level:'warn', text:'후보정이 강하거나 장면 요소가 섞여 있어 필터보다 WB/EV 영향이 더 클 수 있습니다.'});
+  if(family==='zeiss' && m.skinScore>0.10 && m.warmth>0.08) warnings.push({level:'warn', text:'실내 인물에서 노란기/주황기 편향이 생길 수 있어 따뜻함과 틴트를 먼저 점검하세요.'});
+  if(filter === 'Leica Blue' || filter.startsWith('Leica BW')) warnings.push({level:'bad', text:'예술적 필터 성향이 강합니다. 일반 컬러 복원 목적이면 다른 후보를 먼저 확인하세요.'});
+  return {id:uid(), style, filter, confidence, cameraSuggestion, awbStrategy, sliders:{warmCool,tint,saturation,contrast,sharpness,exposure}, notes, tips, warnings, lookModel, lookFamily:(family==='xiaomi'?'Xiaomi Leica':family==='zeiss'?'ZEISS':family==='fujifilm'?'Fujifilm':family==='ricoh'?'RICOH':'Neutral'), summary:{brightness:scoreToText(m.avgL,['어두운 편','중간','밝은 편']), saturation:scoreToText(m.avgS,['절제형','균형형','강한 편']), contrast:scoreToText(m.contrast,['부드러운 편','중간','강한 편'])}};
+}
+
+function applyColorTransform(img, candidate, opts={}){
+  const maxSide = opts.maxSide || 1400;
+  const tweak = opts.tweak || null;
+  const canvas=document.createElement('canvas');
+  const scale=Math.min(1,maxSide/Math.max(img.width,img.height));
+  canvas.width=Math.max(16,Math.round(img.width*scale));
+  canvas.height=Math.max(16,Math.round(img.height*scale));
+  const ctx=canvas.getContext('2d',{willReadFrequently:true});
+  ctx.drawImage(img,0,0,canvas.width,canvas.height);
+  const imageData=ctx.getImageData(0,0,canvas.width,canvas.height), d=imageData.data;
+  const sliders = tweak || candidate.sliders;
+  let sat=sliders.saturation/100, cont=sliders.contrast/100, warm=sliders.warmCool/120, tint=sliders.tint/20, exp=sliders.exposure/5, sharp=sliders.sharpness/100;
+  const base=getBaseline(); const neutralize=getBaselineNeutralize(base.style, base.filter);
+  if(neutralize.sat<=-1) sat=Math.max(sat,-0.22); else sat-=neutralize.sat;
+  cont-=neutralize.cont; warm-=neutralize.warm; tint-=neutralize.tint * 4;
+
+  const model = candidate.lookModel || 'xiaomi-neutral';
+  let shoulderStrength = 0.10;
+  let satLumaAmount = 0.08;
+  let shadowLift = 0;
+  let microContrast = 0;
+  let hueCfg = {};
+
+  if(model==='xiaomi-authentic'){ cont += 0.02; shoulderStrength = 0.12; shadowLift = -0.015; }
+  if(model==='xiaomi-vibrant'){ sat += 0.03; cont += 0.01; shoulderStrength = 0.08; }
+  if(model==='xiaomi-neutral'){ shoulderStrength = 0.10; satLumaAmount = 0.07; }
+  if(model==='zeiss-natural'){ sat -= 0.03; cont -= 0.05; exp -= 0.02; shoulderStrength = 0.14; satLumaAmount = 0.12; shadowLift = 0.025; hueCfg={redToOrange:0.8,yellowToGreen:0.8,greenDeep:0.7,blueToCyan:0.75}; }
+  if(model==='zeiss-vivid'){ sat += 0.02; cont -= 0.02; shoulderStrength = 0.13; satLumaAmount = 0.11; shadowLift = 0.015; hueCfg={redToOrange:0.55,yellowToGreen:0.55,greenDeep:0.55,blueToCyan:0.65}; }
+  if(model==='zeiss-textured'){ sat -= 0.02; cont += 0.04; warm += 0.03; shoulderStrength = 0.11; satLumaAmount = 0.08; shadowLift = -0.02; microContrast = 0.03; hueCfg={redToOrange:0.35,brownRed:0.3,highlightAmber:0.5}; }
+  if(model==='fuji-provia'){ sat += 0.005; cont += 0.005; shoulderStrength = 0.09; satLumaAmount = 0.06; }
+  if(model==='fuji-velvia'){ sat += 0.08; cont += 0.06; shoulderStrength = 0.07; satLumaAmount = 0.10; shadowLift = -0.03; hueCfg={blueToMagenta:0.7,greenDeep:0.8}; }
+  if(model==='fuji-astia'){ sat += 0.01; cont -= 0.03; warm += 0.01; shoulderStrength = 0.11; satLumaAmount = 0.07; shadowLift = 0.015; hueCfg={redToOrange:0.4}; }
+  if(model==='fuji-classic-chrome'){ sat -= 0.10; cont += 0.03; shoulderStrength = 0.10; satLumaAmount = 0.06; shadowLift = -0.015; hueCfg={blueToCyan:0.8}; }
+  if(model==='fuji-classic-neg'){ sat -= 0.03; cont += 0.07; shoulderStrength = 0.10; satLumaAmount = 0.08; shadowLift = -0.03; hueCfg={brownRed:0.8,greenDeep:0.5,shadowCool:0.9}; }
+  if(model==='fuji-reala-ace'){ sat -= 0.02; cont += 0.02; shoulderStrength = 0.13; satLumaAmount = 0.15; shadowLift = -0.01; hueCfg={redToOrange:0.18,blueToCyan:0.15}; }
+  if(model==='fuji-eterna'){ sat -= 0.14; cont -= 0.04; shoulderStrength = 0.14; satLumaAmount = 0.08; shadowLift = 0.03; hueCfg={blueToCyan:0.35}; }
+  if(model==='fuji-nostalgic-neg'){ sat -= 0.03; cont += 0.03; warm += 0.04; shoulderStrength = 0.12; satLumaAmount = 0.10; shadowLift = -0.01; hueCfg={highlightAmber:0.9,brownRed:0.35}; }
+  if(model==='fuji-pro-neg-std'){ sat -= 0.09; cont -= 0.04; shoulderStrength = 0.12; satLumaAmount = 0.08; shadowLift = 0.02; hueCfg={redToOrange:0.3}; }
+  if(model==='ricoh-positive'){ sat += 0.06; cont += 0.05; shoulderStrength = 0.08; satLumaAmount = 0.09; shadowLift = -0.02; hueCfg={redToOrange:0.25,blueToCyan:0.2}; }
+
+  for(let i=0;i<d.length;i+=4){
+    let r=d[i]/255,g=d[i+1]/255,b=d[i+2]/255;
+    let l=0.2126*r+0.7152*g+0.0722*b;
+    const expAdj = exp + shadowLift * Math.max(0, 0.45-l) + 0.02 * Math.max(0, l-0.85);
+    r=clamp(r+expAdj,0,1); g=clamp(g+expAdj,0,1); b=clamp(b+expAdj,0,1);
+    l=0.2126*r+0.7152*g+0.0722*b;
+
+    const localSat = (1+sat) * satVsLumaFactor(l, satLumaAmount, model==='fuji-reala-ace'?0.62:0.68);
+    r=clamp(l+(r-l)*localSat,0,1); g=clamp(l+(g-l)*localSat,0,1); b=clamp(l+(b-l)*localSat,0,1);
+
+    r=clamp((r-0.5)*(1+cont)+0.5,0,1); g=clamp((g-0.5)*(1+cont)+0.5,0,1); b=clamp((b-0.5)*(1+cont)+0.5,0,1);
+    r=clamp(r+warm*0.07,0,1); b=clamp(b-warm*0.07,0,1);
+    if(tint >= 0){
+      g=clamp(g-tint*0.08,0,1); r=clamp(r+tint*0.05,0,1); b=clamp(b+tint*0.05,0,1);
+    }else{
+      const teal=-tint;
+      r=clamp(r-teal*0.04,0,1); g=clamp(g+teal*0.05,0,1); b=clamp(b+teal*0.03,0,1);
+    }
+
+    [r,g,b] = shiftHueSimple(r,g,b,hueCfg);
+    l=0.2126*r+0.7152*g+0.0722*b;
+
+    if(candidate.filter==='Leica Sepia'){
+      const nr=clamp(r*0.393 + g*0.769 + b*0.189,0,1), ng=clamp(r*0.349 + g*0.686 + b*0.168,0,1), nb=clamp(r*0.272 + g*0.534 + b*0.131,0,1);
+      r=lerp(r,nr,0.18); g=lerp(g,ng,0.18); b=lerp(b,nb,0.18);
+    }else if(candidate.filter==='Leica Blue'){
+      const mono=(r+g+b)/3;
+      r=clamp(mono*0.70,0,1); g=clamp(mono*0.84,0,1); b=clamp(mono*1.18,0,1);
+    }else if(candidate.filter==='Leica BW Natural' || candidate.filter==='Leica BW HC'){
+      const mono=l; r=g=b=candidate.filter==='Leica BW HC' ? clamp((mono-0.5)*1.15+0.5,0,1):mono;
+    }
+
+    if(microContrast!==0){
+      const mid = 0.5;
+      r = clamp(r + (r-mid)*microContrast,0,1);
+      g = clamp(g + (g-mid)*microContrast,0,1);
+      b = clamp(b + (b-mid)*microContrast,0,1);
+    }
+
+    l=0.2126*r+0.7152*g+0.0722*b;
+    const rolled = softShoulder(l, shoulderStrength, model==='zeiss-natural'?0.66:0.72);
+    if(l>0){
+      const ratio = rolled / l;
+      r=clamp(r*ratio,0,1); g=clamp(g*ratio,0,1); b=clamp(b*ratio,0,1);
+    }
+
+    if(model==='xiaomi-authentic' && l<0.35){
+      const lowBoost=Math.max(0,0.35-l)*0.08;
+      r=clamp(r-lowBoost*0.12,0,1); g=clamp(g-lowBoost*0.12,0,1); b=clamp(b-lowBoost*0.12,0,1);
+    }else if(model==='xiaomi-vibrant'){
+      const vib=0.03; r=clamp(r+vib*(r-l),0,1); g=clamp(g+vib*(g-l),0,1); b=clamp(b+vib*(b-l),0,1);
+    }
+
+    d[i]=Math.round(clamp(r,0,1)*255); d[i+1]=Math.round(clamp(g,0,1)*255); d[i+2]=Math.round(clamp(b,0,1)*255);
+  }
+  ctx.putImageData(imageData,0,0);
+
+  if(sharp>0.02){
+    const id=ctx.getImageData(0,0,canvas.width,canvas.height), src=id.data, out=new Uint8ClampedArray(src), amount=clamp(sharp*0.8,0,0.22);
+    for(let y=1;y<canvas.height-1;y++) for(let x=1;x<canvas.width-1;x++){
+      const i=(y*canvas.width+x)*4;
+      for(let c=0;c<3;c++){
+        const v=src[i+c]*5 - src[i-4+c] - src[i+4+c] - src[i-canvas.width*4+c] - src[i+canvas.width*4+c];
+        out[i+c]=clamp(src[i+c] + (v-src[i+c])*amount, 0, 255);
+      }
+    }
+    id.data.set(out); ctx.putImageData(id,0,0);
+  }
+  return canvas;
+}
+
+function makePresetCandidate(preset){
+  const baseAnalysis = state.analysis || {avgS:0.45,avgL:0.5,contrast:0.2,warmth:0,tint:0,edge:0.06,highlights:0.12,shadows:0.12,skinScore:0.08,skyScore:0.08,greenScore:0.08,dynamicRange:0.5,uncertainty:0.08};
+  let candidate = buildCandidateForFilter(baseAnalysis, preset.style, preset.filter, 0);
+  candidate.sliders = cloneObj(preset.sliders);
+  candidate.id = `builtin-${preset.id}`;
+  candidate.cameraSuggestion = candidate.cameraSuggestion || '23mm 메인 기본';
+  candidate.awbStrategy = candidate.awbStrategy || 'AWB 유지';
+  candidate.lookModel = preset.lookModel || candidate.lookModel;
+  candidate.lookFamily = preset.lookFamily || candidate.lookFamily;
+  candidate.notes = [...(candidate.notes||[]), `${preset.group} 계열의 대표 색 성향을 샤오미 17 울트라 기준으로 매핑한 프리셋입니다.`, preset.description, `재현성 평가: ${preset.match}. ${preset.compare}`];
+  candidate.tips = [...(candidate.tips||[]), `현재 프리셋 원형: ${preset.sourceTone}`, '완전 복제보다 방향성 매칭 프리셋으로 보는 것이 좋습니다.'];
+  candidate.builtinMeta = preset;
+  candidate.confidence = preset.match==='높음'?0.84:(preset.match==='중상'?0.74:0.66);
+  return candidate;
+}
+
+function renderCurrentSelection(){
+  const candidate=getSelectedCandidate();
+  if(!candidate) return;
+  els.modeChips.innerHTML=[
+    `<div class="chip">${candidate.style}</div>`,
+    `<div class="chip">${candidate.filter}</div>`,
+    `<div class="chip">${candidate.lookFamily || 'Xiaomi Leica'}</div>`,
+    `<div class="chip">${candidate.lookModel || 'xiaomi-neutral'}</div>`,
+    `<div class="chip">${candidate.cameraSuggestion}</div>`,
+    `<div class="chip">신뢰도 ${Math.round(candidate.confidence*100)}%</div>`
+  ].join('');
+  els.modeDetail.innerHTML=detailRows([
+    ['추천 스타일', candidate.style],
+    ['추천 필터', candidate.filter],
+    ['목표 색감 계열', candidate.lookFamily || 'Xiaomi Leica'],
+    ['룩 엔진', candidate.lookModel || 'xiaomi-neutral'],
+    ['추천 렌즈', candidate.cameraSuggestion],
+    ['AWB 전략', candidate.awbStrategy],
+    ['밝기/채도/대비', `${candidate.summary.brightness} / ${candidate.summary.saturation} / ${candidate.summary.contrast}`],
+    ['설명', candidate.notes.join(' ')],
+    ['프리셋 원형', candidate.builtinMeta ? `${candidate.builtinMeta.group} · ${candidate.builtinMeta.sourceTone}` : 'AI 분석 기반 추천안']
+  ]);
+  renderApplyList();
+  renderLiveGrid();
+  renderDeltaAndWarnings();
+  renderPriorityList();
+  renderAIDetail();
+  renderReport();
+  renderTips();
+  refreshCandidateActive();
+}
+
+function buildReport(){
+  const c=getSelectedCandidate(), m=state.analysis, base=getBaseline(), tweak=getCurrentTweak();
+  if(!c || !m) return '분석 전입니다.';
+  return [
+    'Xiaomi 17 Ultra Color Match Tool Ultimate Studio · Patch v2',
+    '',
+    `[기준 원본] ${base.style} / ${base.filter}`,
+    `[목표 계열] ${c.lookFamily || 'Xiaomi Leica'} / ${c.lookModel || 'xiaomi-neutral'}`,
+    `[추천 조합] ${c.style} / ${c.filter}`,
+    '',
+    '[분석 요약]',
+    `- 평균 밝기: ${round(m.avgL,3)} (${c.summary.brightness})`,
+    `- 평균 채도: ${round(m.avgS,3)} (${c.summary.saturation})`,
+    `- 대비: ${round(m.contrast,3)} (${c.summary.contrast})`,
+    `- 다이내믹 레인지: ${round(m.dynamicRange,3)}`,
+    `- 장면 태그: ${m.sceneTags.join(', ')}`,
+    '',
+    '[추천 수치]',
+    `- 따뜻함/차가움: ${formatSigned(tweak.warmCool)}`,
+    `- 청록↔자홍: ${formatSigned(tweak.tint)}`,
+    `- 채도: ${formatSigned(tweak.saturation)}`,
+    `- 대비: ${formatSigned(tweak.contrast)}`,
+    `- 선명도: ${formatSigned(tweak.sharpness)}`,
+    `- EV: ${formatSigned(tweak.exposure,1)}`,
+    '',
+    '[운용 메모]',
+    ...c.notes.map(v=>`- ${v}`),
+    '',
+    '[실전 팁]',
+    ...c.tips.map(v=>`- ${v}`),
+    '',
+    '[경고]',
+    ...(c.warnings.length?c.warnings.map(v=>`- ${v.text}`):['- 특이 경고 없음'])
+  ].join('\n');
+}
+
+const _loadPresetOriginal = loadPreset;
+loadPreset = function(id){
+  _loadPresetOriginal(id);
+  const list=loadPresets(); const p=list.find(x=>x.id===id);
+  if(p && els.familyBias && p.lookFamily){
+    const map={ 'ZEISS':'zeiss', 'Fujifilm':'fujifilm', 'RICOH':'ricoh', 'Xiaomi Leica':'xiaomi', 'Neutral':'neutral' };
+    els.familyBias.value = map[p.lookFamily] || els.familyBias.value;
+  }
+};
+
+const _collectPresetPayloadOriginal = collectPresetPayload;
+collectPresetPayload = function(favorite=false){
+  const payload = _collectPresetPayloadOriginal(favorite);
+  if(!payload) return payload;
+  const c=getSelectedCandidate();
+  payload.lookFamily = c?.lookFamily || null;
+  payload.lookModel = c?.lookModel || null;
+  payload.familyBias = getFamilyBias();
+  return payload;
+};
+
+const _bindEventsOriginal = bindEvents;
+bindEvents = function(){
+  _bindEventsOriginal();
+  if(els.familyBias) els.familyBias.addEventListener('change', ()=>{ if(state.analysis) handleAnalyze(); });
+};
+
 
 bindEvents();
 setUIMode('simple');
