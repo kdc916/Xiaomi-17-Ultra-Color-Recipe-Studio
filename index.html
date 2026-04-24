@@ -126,7 +126,8 @@ button:disabled{opacity:.55;cursor:not-allowed}
 .live-slider{-webkit-appearance:none;appearance:none;height:8px;border-radius:999px;background:linear-gradient(90deg,#16345c,#254e83);outline:none;border:1px solid rgba(121,215,255,.18)}
 .live-slider::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:22px;height:22px;border-radius:50%;background:linear-gradient(180deg,var(--brand),#58c6ff);border:2px solid #fff;box-shadow:0 4px 16px rgba(121,215,255,.35);cursor:grab}
 .live-slider::-moz-range-thumb{width:22px;height:22px;border-radius:50%;background:linear-gradient(180deg,var(--brand),#58c6ff);border:2px solid #fff;box-shadow:0 4px 16px rgba(121,215,255,.35);cursor:grab}
-#builtinPresetPanel{margin-top:14px}\n#builtinPresetPanel .preset-list{max-height:340px;overflow:auto}
+#builtinPresetPanel{margin-top:14px}
+#builtinPresetPanel .preset-list{max-height:340px;overflow:auto}
 details.accordion{border:1px solid var(--line);border-radius:16px;background:rgba(255,255,255,.02);margin-top:14px;overflow:hidden}
 details.accordion summary{list-style:none;cursor:pointer;padding:14px 16px;font-weight:800;display:flex;align-items:center;justify-content:space-between;gap:12px}
 details.accordion summary::-webkit-details-marker{display:none}
@@ -328,7 +329,7 @@ details.accordion[open] summary::after{content:'－'}
   </section>
 
   <section class="card panel" style="margin-top:18px">
-    <div class="section-title"><h2>추천 결과 / Live Tweak</h2><div class="toolbar" style="margin-top:0"><button id="copyTextBtn" class="secondary" disabled>텍스트 복사</button><button id="copyJsonBtn" class="secondary" disabled>JSON 복사</button><button id="downloadTxtBtn" class="secondary" disabled>TXT 저장</button></div></div>
+    <div class="section-title"><h2>추천 결과 / Live Tweak</h2><div class="toolbar" style="margin-top:0"><button id="copyTextBtn" class="secondary" disabled>텍스트 복사</button><button id="copyJsonBtn" class="secondary" disabled>JSON 복사</button><button id="downloadTxtBtn" class="secondary" disabled>TXT 저장</button><button id="downloadXiaomiZipBtn" class="secondary" disabled>샤오미 ZIP 저장</button></div></div>
 
     <div class="result-grid">
       <div class="result-card">
@@ -552,12 +553,12 @@ const els = {};
 function bindEls(){
   [
     'targetInput','sourceInput','targetDrop','sourceDrop','targetPlaceholder','sourcePlaceholder','targetPreviewWrap','sourcePreviewWrap','targetPreview','sourcePreview',
-    'analyzeBtn','clearBtn','loadDemoBtn','baselineStyle','baselineFilter','scenePriority',
+    'analyzeBtn','clearBtn','loadDemoBtn','baselineStyle','baselineFilter','scenePriority','familyBias',
     'statLuma','statSat','statContrast','statWarm','statTint','statScene',
     'compareBaseCanvas','compareAppliedCanvas','compareSlider','compareDivider','compareHandle','previewNote',
     'candidateGrid','lockBadge','lockSelectionBtn','unlockSelectionBtn','revertAISelectionBtn',
     'modeChips','modeDetail','applyList','liveGrid','deltaDetail','warningDetail','priorityList','reportBox','aiDetail','tipsList',
-    'copyTextBtn','copyJsonBtn','downloadTxtBtn',
+    'copyTextBtn','copyJsonBtn','downloadTxtBtn','downloadXiaomiZipBtn',
     'simpleModeBtn','proModeBtn','proPriorityWrap','proAnalysisWrap','proPriorityRow','proAnalysisRow','presetPanel',
     'presetName','presetMemo','savePresetBtn','saveFavoriteBtn','clearPresetsBtn','presetList','builtinPresetList','builtinPresetListInline',
     'loadingOverlay','loadingBar','loadingStep','resetToSelectedBtn','resetToAIBtn','resetZeroBtn'
@@ -574,6 +575,9 @@ function pct(v){return `${Math.round(v*100)}%`;}
 function scoreToText(v,labels){if(v<0.33) return labels[0]; if(v<0.66) return labels[1]; return labels[2];}
 function uid(){return Math.random().toString(36).slice(2,10);}
 function rgbToHex(r,g,b){return '#'+[r,g,b].map(v=>Math.round(v).toString(16).padStart(2,'0')).join('');}
+function escapeHTML(str=''){
+  return String(str).replace(/[&<>\"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[ch]));
+}
 function getBaseline(){return {style:els.baselineStyle.value, filter:els.baselineFilter.value};}
 function getPriorityMode(){return els.scenePriority.value;}
 function updateLoading(step, percent){
@@ -670,111 +674,12 @@ function analyzeImage(img){
   return {avgR,avgG,avgB,avgL,avgS,contrast,dynamicRange,warmth,tint,edge,highlights:highlightsPct,shadows:shadowsPct,skyScore,greenScore,skinScore,redScore,dominantHue,sceneTags,palette,lightMood,uncertainty};
 }
 
-function classifyMood(m){
-  return {
-    vividScore: clamp((m.avgS - 0.34) * 1.9 + (m.redScore + m.skyScore + m.greenScore) * 0.7 + (m.avgL > 0.48 ? 0.08 : 0), 0, 1),
-    cinematicScore: clamp((0.45 - m.avgS) * 1.25 + m.contrast * 1.55 + (m.shadows > 0.22 ? 0.18 : 0), 0, 1),
-    portraitScore: clamp(m.skinScore * 2.4 + (m.avgS < 0.52 ? 0.12 : 0) + (m.edge < 0.08 ? 0.08 : 0), 0, 1)
-  };
-}
-function chooseStyle(m){
-  const mood=classifyMood(m);
-  const p=getPriorityMode();
-  let vividBias=0, authenticBias=0;
-  if(p==='skin') authenticBias+=0.08;
-  if(p==='sky') vividBias += m.skyScore*0.08;
-  if(p==='mood') authenticBias+=0.06;
-  if(p==='accuracy') authenticBias+=0.04;
-  return (m.avgS > 0.53 || mood.vividScore + vividBias > 0.66 + authenticBias) ? 'Leica Vibrant' : 'Leica Authentic';
-}
-function scoreFilter(filter,m){
-  const mood=classifyMood(m); const p=getPriorityMode();
-  let s=0, reasons=[];
-  function add(v, reason){s+=v; if(reason) reasons.push(reason);}
-  if(filter==='Original'){ add(0.52, '안전한 기준점'); if(m.avgS>0.42&&m.avgS<0.56) add(0.1,'균형 채도'); }
-  if(filter==='Positive'){ add(0.45,'가벼운 생기'); if(m.skinScore>0.12) add(0.22,'피부 비중'); if(m.warmth>0.02) add(0.08,'따뜻한 장면'); }
-  if(filter==='Negative'){ add(0.42,'절제형 필름 무드'); if(m.avgS<0.40) add(0.22,'낮은 채도'); if(m.shadows>0.18) add(0.12,'그림자 존재감'); }
-  if(filter==='VIV' || filter==='Vivid'){ add(0.38,'강색 계열'); if(m.avgS>0.54) add(0.25,'고채도 장면'); if(m.redScore+m.skyScore+m.greenScore>0.32) add(0.12,'색 밀도 풍부'); }
-  if(filter==='NAT' || filter==='Leica Natural'){ add(0.5,'담백한 재현'); if(m.avgS<0.50) add(0.15,'과채도 억제'); }
-  if(filter==='Movie'){ add(0.4,'시네마 무드'); if(m.avgS<0.42) add(0.2,'저채도'); if(m.contrast>0.18) add(0.08,'명암 유지'); }
-  if(filter==='Gold Vibes'){ add(0.35,'웜 하이라이트'); if(m.warmth>0.08) add(0.22,'따뜻한 톤'); if(m.avgL>0.46) add(0.1,'밝은 장면'); }
-  if(filter==='Scarlet'){ add(0.28,'레드/브라운 무드'); if(m.redScore>0.11) add(0.26,'레드 비중'); if(m.skinScore>0.08) add(0.08,'피부와 상성'); }
-  if(filter==='Teal Mist'){ add(0.32,'청록 안개'); if(m.skyScore>0.12) add(0.22,'하늘/블루'); if(m.warmth<-0.03) add(0.12,'차가운 톤'); }
-  if(filter==='Monsoon'){ add(0.33,'차갑고 눅진한 분위기'); if(m.avgS<0.44) add(0.16,'낮은 채도'); if(m.shadows>0.20) add(0.16,'비·흐림 무드'); }
-  if(filter==='Leica Vivid'){ add(0.36,'Leica 강색'); if(m.avgS>0.56) add(0.22,'높은 채도'); }
-  if(filter==='Leica Sepia'){ add(0.16,'웜 빈티지'); if(m.warmth>0.10 && m.avgS<0.46 && m.avgL>0.40) add(0.30,'웜하고 절제된 장면'); }
-  if(filter==='Leica Blue'){ add(-0.18,'매우 제한적 사용'); if(m.avgS<0.10 && m.warmth<-0.08 && m.skyScore>0.12) add(0.60,'저채도·쿨톤·블루 조건 일치'); else add(-0.3,'일반 컬러 장면에 부적합'); }
-  if(filter==='Leica BW Natural'){ add(-0.05,'흑백 계열'); if(m.avgS<0.06) add(0.62,'색 정보가 거의 없음'); else add(-0.25,'컬러 정보 풍부'); }
-  if(filter==='Leica BW HC'){ add(-0.08,'강한 흑백 계열'); if(m.avgS<0.06 && m.contrast>0.2) add(0.68,'저채도+강한 명암'); else add(-0.26,'컬러/낮은 명암 부적합'); }
-  if(p==='skin'){
-    if(filter==='Positive' || filter==='Leica Natural') add(0.12,'피부 우선 보정');
-    if(filter==='VIV' || filter==='Vivid' || filter==='Teal Mist') add(-0.07,'피부 우선과 상충');
-  }
-  if(p==='sky'){
-    if(filter==='Teal Mist' || filter==='Leica Blue' || filter==='Monsoon') add(0.1,'하늘 우선');
-    if(filter==='Gold Vibes') add(-0.03,'하늘 우선과는 거리');
-  }
-  if(p==='mood'){
-    if(['Movie','Monsoon','Teal Mist','Scarlet','Gold Vibes'].includes(filter)) add(0.12,'무드 우선');
-  }
-  if(p==='accuracy'){
-    if(['Original','NAT','Leica Natural','Positive'].includes(filter)) add(0.12,'정확도 우선');
-    if(['VIV','Vivid','Leica Vivid','Gold Vibes','Scarlet'].includes(filter)) add(-0.06,'과한 캐릭터성');
-  }
-  return {filter, score:s, reason:reasons.slice(0,4).join(' · ') || FILTER_INFO[filter]?.desc || ''};
-}
+/* Legacy duplicate block removed at line 677 during cleanup. */
 function chooseFilterRanking(m){
   const filters = Object.keys(FILTER_INFO);
   return filters.map(f=>scoreFilter(f,m)).sort((a,b)=>b.score-a.score);
 }
-function buildCandidateForFilter(m, style, filter, rankIndex=0){
-  let warmCool = clamp(Math.round(m.warmth * 140), -28, 28);
-  let tint = clamp(Math.round(-m.tint * 180), -20, 20);
-  let saturation = clamp(Math.round((m.avgS - 0.42) * 120), -24, 24);
-  let contrast = clamp(Math.round((m.contrast - 0.21) * 170), -24, 24);
-  let sharpness = clamp(Math.round(((m.edge - 0.01)/(0.16-0.01)) * 28 - 8), -10, 20);
-  let exposure = clamp(round((m.avgL - 0.5) * 2.8, 1), -1.8, 1.8);
-
-  if(style === 'Leica Vibrant') saturation = clamp(saturation + 3, -24, 24);
-  if(style === 'Leica Authentic') contrast = clamp(contrast + 2, -24, 24);
-  if(['Leica Vivid','VIV','Vivid'].includes(filter)) saturation = clamp(saturation + 5, -24, 24);
-  if(['Leica Natural','NAT'].includes(filter)) saturation = clamp(saturation - 1, -24, 24);
-  if(filter === 'Movie'){ saturation = clamp(saturation - 4, -24, 24); contrast = clamp(contrast + 2, -24, 24); tint = clamp(tint - 2, -20, 20); }
-  if(filter === 'Gold Vibes'){ warmCool = clamp(warmCool + 10, -28, 28); saturation = clamp(saturation + 2, -24, 24); }
-  if(filter === 'Scarlet'){ warmCool = clamp(warmCool + 5, -28, 28); saturation = clamp(saturation - 2, -24, 24); contrast = clamp(contrast + 2, -24, 24); tint = clamp(tint + 1, -20, 20); }
-  if(filter === 'Teal Mist'){ warmCool = clamp(warmCool - 8, -28, 28); tint = clamp(tint - 5, -20, 20); saturation = clamp(saturation - 3, -24, 24); contrast = clamp(contrast - 2, -24, 24); }
-  if(filter === 'Monsoon'){ warmCool = clamp(warmCool - 5, -28, 28); tint = clamp(tint - 2, -20, 20); saturation = clamp(saturation - 4, -24, 24); }
-  if(filter === 'Leica Sepia'){ warmCool = clamp(warmCool + 8, -28, 28); saturation = clamp(saturation - 3, -24, 24); }
-  if(filter === 'Leica Blue'){ warmCool = clamp(warmCool - 14, -28, 28); tint = clamp(tint - 4, -20, 20); saturation = clamp(saturation - 8, -24, 24); }
-  if(m.skinScore > 0.14) sharpness = clamp(sharpness - 2, -10, 20);
-  if(m.highlights > 0.24) exposure = clamp(exposure - 0.2, -1.8, 1.8);
-  if(m.shadows > 0.28 && m.avgL < 0.4) exposure = clamp(exposure + 0.2, -1.8, 1.8);
-
-  const confidence = clamp(0.5 + (1 - Math.abs(0.46 - m.avgS)) * 0.16 + (m.dynamicRange * 0.18) + (Math.min(0.18, m.edge) * 0.45) - m.uncertainty*0.4 - rankIndex*0.03, 0.35, 0.93);
-  const cameraSuggestion = m.skinScore > 0.16 ? '75–100mm 망원 우선' : (m.skyScore + m.greenScore > 0.28 ? '23mm 메인 우선' : '23mm 메인 기본');
-  const awbStrategy = Math.abs(m.warmth) < 0.04 ? 'AWB 유지' : (m.warmth > 0 ? 'AWB 유지 후 필요 시 약간 따뜻하게' : 'AWB 유지 후 필요 시 약간 차갑게');
-  const notes = [];
-  if(style === 'Leica Vibrant') notes.push('스타일은 색 밀도와 시각적 임팩트를 우선하는 방향입니다.');
-  if(style === 'Leica Authentic') notes.push('스타일은 무드와 명암을 살리는 방향이 유리합니다.');
-  if(filter === 'Leica Blue') notes.push('Leica Blue는 블루톤 모노 성향에 가까워 일반 컬러 장면에는 보수적으로 추천합니다.');
-  if(['Movie','Monsoon','Teal Mist'].includes(filter)) notes.push('이 필터군은 atmosphere 계열로 색온도와 틴트 반영이 큽니다.');
-  if(['Gold Vibes','Scarlet'].includes(filter)) notes.push('웜/레드 계열의 감정선을 살리는 데 유리합니다.');
-  if(m.skinScore > 0.12) notes.push('인물 비중이 있어 피부 안정감을 우선했습니다.');
-  if(m.skyScore > 0.14) notes.push('블루톤 정보가 많아 하늘 보존 쪽으로 조정했습니다.');
-  if(m.dynamicRange > 0.62) notes.push('명암 범위가 넓어 노출은 하이라이트 보호 쪽이 안전합니다.');
-  if(!notes.length) notes.push('균형형 장면이라 극단 설정보다 미세 조정형 추천이 적합합니다.');
-  const tips = [`${cameraSuggestion}으로 시작하세요.`, `${awbStrategy}.`];
-  if(['Leica Vivid','VIV','Vivid'].includes(filter)) tips.push('채도를 너무 많이 올리면 붉은색이 먼저 무너질 수 있으니 +12 전후부터 점검하세요.');
-  if(['Negative','NAT','Leica Natural','Movie','Monsoon','Teal Mist'].includes(filter)) tips.push('명암을 너무 눌러버리면 회색 안개처럼 보일 수 있으니 대비는 중간선에서 미세 조정하세요.');
-  if(m.skinScore > 0.12) tips.push('인물 촬영이면 선명도보다 망원 화각과 얼굴 노출 안정화가 결과를 더 크게 바꿉니다.');
-
-  const warnings = [];
-  if(confidence < 0.58) warnings.push({level:'warn', text:'분석 신뢰도가 낮습니다. 추천을 시작점으로 보고 수동 튜닝을 권장합니다.'});
-  if(m.uncertainty > 0.18) warnings.push({level:'warn', text:'후보정이 강하거나 장면 요소가 섞여 있어 필터보다 WB/EV 영향이 더 클 수 있습니다.'});
-  if(filter === 'Leica Blue' || filter.startsWith('Leica BW')) warnings.push({level:'bad', text:'예술적 필터 성향이 강합니다. 일반 컬러 복원 목적이면 다른 후보를 먼저 확인하세요.'});
-  return {id:uid(), style, filter, confidence, cameraSuggestion, awbStrategy, sliders:{warmCool,tint,saturation,contrast,sharpness,exposure}, notes, tips, warnings, summary:{brightness:scoreToText(m.avgL,['어두운 편','중간','밝은 편']), saturation:scoreToText(m.avgS,['절제형','균형형','강한 편']), contrast:scoreToText(m.contrast,['부드러운 편','중간','강한 편'])}};
-}
-
+/* Legacy duplicate block removed at line 734 during cleanup. */
 function getBaselineNeutralize(style, filter){
   let sat=0, cont=0, warm=0, tint=0;
   if(style==='Leica Vibrant'){ sat+=0.08; cont+=0.04; warm+=0.01; }
@@ -800,87 +705,7 @@ function getCurrentTweak(){
   if(!state.liveAdjustments) return {warmCool:0,tint:0,saturation:0,contrast:0,sharpness:0,exposure:0};
   return state.liveAdjustments;
 }
-function applyColorTransform(img, candidate, opts={}){
-  const maxSide = opts.maxSide || 1400;
-  const tweak = opts.tweak || null;
-  const canvas=document.createElement('canvas');
-  const scale=Math.min(1,maxSide/Math.max(img.width,img.height));
-  canvas.width=Math.max(16,Math.round(img.width*scale));
-  canvas.height=Math.max(16,Math.round(img.height*scale));
-  const ctx=canvas.getContext('2d',{willReadFrequently:true});
-  ctx.drawImage(img,0,0,canvas.width,canvas.height);
-  const imageData=ctx.getImageData(0,0,canvas.width,canvas.height), d=imageData.data;
-  const sliders = tweak || candidate.sliders;
-  let sat=sliders.saturation/100, cont=sliders.contrast/100, warm=sliders.warmCool/120, tint=sliders.tint/20, exp=sliders.exposure/5, sharp=sliders.sharpness/100;
-  const base=getBaseline(); const neutralize=getBaselineNeutralize(base.style, base.filter);
-  if(neutralize.sat<=-1) sat=Math.max(sat,-0.22); else sat-=neutralize.sat;
-  cont-=neutralize.cont; warm-=neutralize.warm; tint-=neutralize.tint * 4;
-  if(candidate.style==='Leica Vibrant') sat+=0.03; else cont+=0.02;
-
-  for(let i=0;i<d.length;i+=4){
-    let r=d[i]/255,g=d[i+1]/255,b=d[i+2]/255;
-    r=clamp(r+exp,0,1); g=clamp(g+exp,0,1); b=clamp(b+exp,0,1);
-    const l=0.2126*r+0.7152*g+0.0722*b;
-    r=clamp(l+(r-l)*(1+sat),0,1); g=clamp(l+(g-l)*(1+sat),0,1); b=clamp(l+(b-l)*(1+sat),0,1);
-    r=clamp((r-0.5)*(1+cont)+0.5,0,1); g=clamp((g-0.5)*(1+cont)+0.5,0,1); b=clamp((b-0.5)*(1+cont)+0.5,0,1);
-    r=clamp(r+warm*0.07,0,1); b=clamp(b-warm*0.07,0,1);
-    if(tint >= 0){
-      g=clamp(g-tint*0.08,0,1);
-      r=clamp(r+tint*0.05,0,1);
-      b=clamp(b+tint*0.05,0,1);
-    }else{
-      const teal=-tint;
-      r=clamp(r-teal*0.04,0,1);
-      g=clamp(g+teal*0.05,0,1);
-      b=clamp(b+teal*0.03,0,1);
-    }
-
-    if(candidate.filter==='Leica Sepia'){
-      const nr=clamp(r*0.393 + g*0.769 + b*0.189,0,1), ng=clamp(r*0.349 + g*0.686 + b*0.168,0,1), nb=clamp(r*0.272 + g*0.534 + b*0.131,0,1);
-      r=lerp(r,nr,0.18); g=lerp(g,ng,0.18); b=lerp(b,nb,0.18);
-    }else if(candidate.filter==='Leica Blue'){
-      const mono=(r+g+b)/3;
-      r=clamp(mono*0.70,0,1); g=clamp(mono*0.84,0,1); b=clamp(mono*1.18,0,1);
-    }else if(candidate.filter==='Leica BW Natural' || candidate.filter==='Leica BW HC'){
-      const mono=l; r=g=b=candidate.filter==='Leica BW HC' ? clamp((mono-0.5)*1.15+0.5,0,1):mono;
-    }else if(candidate.filter==='Movie'){
-      const shadow=Math.max(0,0.45-l); b=clamp(b+shadow*0.10,0,1); g=clamp(g+shadow*0.04,0,1); r=clamp(r+Math.max(0,l-0.55)*0.04,0,1);
-    }else if(candidate.filter==='Gold Vibes'){
-      r=clamp(r+0.05,0,1); g=clamp(g+0.025,0,1); b=clamp(b-0.02,0,1);
-    }else if(candidate.filter==='Scarlet'){
-      const mono=l; r=clamp(r+0.04,0,1); b=clamp(lerp(b,mono,0.12)-0.015,0,1); g=clamp(g-0.01,0,1);
-    }else if(candidate.filter==='Teal Mist'){
-      const mist=0.05; r=clamp(r-0.02,0,1); g=clamp(g+0.015+mist*(1-l),0,1); b=clamp(b+0.045+mist*(1-l),0,1);
-      r=lerp(r,0.88,0.03); g=lerp(g,0.90,0.03); b=lerp(b,0.94,0.03);
-    }else if(candidate.filter==='Vivid' || candidate.filter==='VIV' || candidate.filter==='Leica Vivid'){
-      r=clamp(r+(r-l)*0.05,0,1); g=clamp(g+(g-l)*0.05,0,1); b=clamp(b+(b-l)*0.05,0,1);
-    }else if(candidate.filter==='Monsoon'){
-      const lift=0.035; r=clamp(r-0.015+lift,0,1); g=clamp(g+0.005+lift,0,1); b=clamp(b+0.025+lift,0,1);
-    }
-    if(candidate.style==='Leica Authentic'){
-      const lowBoost=Math.max(0,0.35-l)*0.08; r=clamp(r-lowBoost*0.12,0,1); g=clamp(g-lowBoost*0.12,0,1); b=clamp(b-lowBoost*0.12,0,1);
-    }else{
-      const vib=0.03; r=clamp(r+vib*(r-l),0,1); g=clamp(g+vib*(g-l),0,1); b=clamp(b+vib*(b-l),0,1);
-    }
-
-    d[i]=Math.round(clamp(r,0,1)*255); d[i+1]=Math.round(clamp(g,0,1)*255); d[i+2]=Math.round(clamp(b,0,1)*255);
-  }
-  ctx.putImageData(imageData,0,0);
-
-  if(sharp>0.02){
-    const id=ctx.getImageData(0,0,canvas.width,canvas.height), src=id.data, out=new Uint8ClampedArray(src), amount=clamp(sharp*0.8,0,0.22);
-    for(let y=1;y<canvas.height-1;y++) for(let x=1;x<canvas.width-1;x++){
-      const idx=(y*canvas.width+x)*4;
-      for(let c=0;c<3;c++){
-        const center=src[idx+c], left=src[idx-4+c], right=src[idx+4+c], up=src[idx-canvas.width*4+c], down=src[idx+canvas.width*4+c], blur=(left+right+up+down)*0.25;
-        out[idx+c]=clamp(center+(center-blur)*(amount*4),0,255);
-      }
-    }
-    id.data.set(out); ctx.putImageData(id,0,0);
-  }
-  return canvas;
-}
-
+/* Legacy duplicate block removed at line 807 during cleanup. */
 function drawCanvasToCanvas(sourceCanvas, targetCanvas){
   const ctx=targetCanvas.getContext('2d');
   targetCanvas.width=targetCanvas.clientWidth*(window.devicePixelRatio||1);
@@ -903,19 +728,20 @@ function getCurrentPreviewCandidate(){ return state.currentPreviewCandidate || g
 async function renderCandidateThumbs(){
   const grid=els.candidateGrid;
   grid.innerHTML='';
-  if(!state.source || !state.ranking.length) return;
+  const previewImg = state.source || state.target;
+  if(!previewImg || !state.ranking.length) return;
   for(let i=0;i<Math.min(5,state.ranking.length);i++){
     const c=state.ranking[i];
     const card=document.createElement('div');
     card.className='candidate-card' + ((getSelectedCandidate()?.id===c.id)?' active':'');
     card.dataset.id=c.id;
-    card.innerHTML=`<div class="candidate-thumb"><canvas id="thumb_${c.id}"></canvas></div><div class="candidate-title">${c.filter}</div><div class="candidate-sub">${c.style} · ${Math.round(c.confidence*100)}점 · ${FILTER_INFO[c.filter]?.desc||''}</div>`;
+    card.innerHTML=`<div class="candidate-thumb"><canvas id="thumb_${escapeHTML(c.id)}"></canvas></div><div class="candidate-title">${escapeHTML(c.filter)}</div><div class="candidate-sub">${escapeHTML(c.style)} · ${Math.round(c.confidence*100)}점 · ${escapeHTML(FILTER_INFO[c.filter]?.desc||'')}</div>`;
     card.addEventListener('click',()=>selectCandidate(c.id));
     grid.appendChild(card);
     // downscaled thumbnail rendering
     await delayFrame();
     const thumbCanvas=card.querySelector('canvas');
-    const rendered=applyColorTransform(state.source,c,{maxSide:280,tweak:c.sliders});
+    const rendered=applyColorTransform(previewImg,c,{maxSide:280,tweak:c.sliders});
     drawCanvasToCanvas(rendered, thumbCanvas);
   }
   refreshCandidateActive();
@@ -949,6 +775,12 @@ function resetLiveToCandidate(candidate){
   renderLiveGrid();
   refreshComparePreview();
 }
+let previewRefreshTimer = null;
+function schedulePreviewRefresh(){
+  clearTimeout(previewRefreshTimer);
+  previewRefreshTimer = setTimeout(()=>refreshComparePreview({fast:true}), 80);
+}
+
 function getDeltaFromSelected(){
   const base = getSelectedCandidate();
   const tweak = getCurrentTweak();
@@ -958,22 +790,24 @@ function getDeltaFromSelected(){
   return out;
 }
 
-function refreshComparePreview(){
+function refreshComparePreview(options={}){
   const candidate = getCurrentPreviewCandidate();
-  if(!state.source || !candidate){
+  const previewImg = state.source || state.target;
+  if(!previewImg || !candidate){
     [els.compareBaseCanvas, els.compareAppliedCanvas].forEach(c=>{ const ctx=c.getContext('2d'); c.width=c.clientWidth*(window.devicePixelRatio||1); c.height=c.clientHeight*(window.devicePixelRatio||1); ctx.fillStyle='#02060f'; ctx.fillRect(0,0,c.width,c.height); });
-    els.previewNote.textContent='아직 샤오미 원본 테스트 이미지가 없습니다. 업로드 후 분석하면 한 화면 비교 프리뷰가 생성됩니다.';
+    els.previewNote.textContent='아직 프리뷰 이미지가 없습니다. 타겟 또는 샤오미 원본 테스트 이미지를 업로드하면 비교 프리뷰가 생성됩니다.';
     updateCompareUI();
     return;
   }
-  const srcCanvas=imageToSampleCanvas(state.source,1400);
-  const applied=applyColorTransform(state.source,candidate,{maxSide:1400,tweak:getCurrentTweak()});
+  const maxSide = options.fast ? 720 : 1100;
+  const srcCanvas=imageToSampleCanvas(previewImg,maxSide);
+  const applied=applyColorTransform(previewImg,candidate,{maxSide,tweak:getCurrentTweak()});
   drawCanvasToCanvas(srcCanvas,els.compareBaseCanvas);
   drawCanvasToCanvas(applied,els.compareAppliedCanvas);
   const base=getBaseline();
-  els.previewNote.textContent=`원본 기준: ${base.style} / ${base.filter} · 현재 미리보기: ${candidate.style} / ${candidate.filter} · 수동 튜닝 반영 중`;
+  const imgLabel = state.source ? '샤오미 원본 기준' : '타겟 이미지 기준 임시 프리뷰';
+  els.previewNote.textContent=`${imgLabel} · 원본 기준: ${base.style} / ${base.filter} · 현재 미리보기: ${candidate.style} / ${candidate.filter} · 수동 튜닝 반영 중`;
   updateCompareUI();
-  renderBuiltinPresets();
 }
 
 function renderStats(m){
@@ -984,39 +818,9 @@ function renderStats(m){
   els.statTint.textContent=m.tint>0.02?'그린':m.tint<-0.02?'마젠타':'중립';
   els.statScene.textContent=m.sceneTags[0];
 }
-function detailRows(rows){ return rows.map(([k,v])=>`<div class="kv"><div class="k">${k}</div><div class="v">${v}</div></div>`).join(''); }
+function detailRows(rows){ return rows.map(([k,v])=>`<div class="kv"><div class="k">${escapeHTML(k)}</div><div class="v">${escapeHTML(v)}</div></div>`).join(''); }
 
-function renderCurrentSelection(){
-  const candidate=getSelectedCandidate();
-  if(!candidate) return;
-  const base=getBaseline();
-  els.modeChips.innerHTML = [
-    `<div class="chip">${candidate.style}</div>`,
-    `<div class="chip">${candidate.filter}</div>`,
-    `<div class="chip">${candidate.cameraSuggestion}</div>`,
-    `<div class="chip">신뢰도 ${Math.round(candidate.confidence*100)}%</div>`
-  ].join('');
-  els.modeDetail.innerHTML = detailRows([
-    ['추천 스타일', candidate.style],
-    ['추천 필터', candidate.filter],
-    ['원본 스타일', base.style],
-    ['원본 필터', base.filter],
-    ['AWB 전략', candidate.awbStrategy],
-    ['추천 렌즈', candidate.cameraSuggestion],
-    ['밝기/채도/대비', `${candidate.summary.brightness} / ${candidate.summary.saturation} / ${candidate.summary.contrast}`],
-    ['설명', candidate.notes.join(' ')],
-    ['프리셋 원형', candidate.builtinMeta ? `${candidate.builtinMeta.group} · ${candidate.builtinMeta.sourceTone}` : 'AI 분석 기반 추천안']
-  ]);
-  renderApplyList();
-  renderLiveGrid();
-  renderDeltaAndWarnings();
-  renderPriorityList();
-  renderAIDetail();
-  renderReport();
-  renderTips();
-  refreshCandidateActive();
-  els.copyTextBtn.disabled=false; els.copyJsonBtn.disabled=false; els.downloadTxtBtn.disabled=false;
-}
+/* Legacy duplicate block removed at line 1002 during cleanup. */
 function renderApplyList(){
   const c=getSelectedCandidate(); const tweak=getCurrentTweak(); if(!c) return;
   const rows = [
@@ -1065,7 +869,7 @@ function bindLiveGridEvents(){
       updateLiveGridDisplay();
       renderApplyList();
       renderDeltaAndWarnings();
-      refreshComparePreview();
+      schedulePreviewRefresh();
     });
   });
 }
@@ -1116,54 +920,7 @@ function renderTips(){
   const c=getSelectedCandidate(); if(!c) return;
   els.tipsList.innerHTML = c.tips.map(t=>`<li>${t}</li>`).join('');
 }
-function buildReport(){
-  const c=getSelectedCandidate(); const m=state.analysis; const base=getBaseline(); const tweak=getCurrentTweak();
-  if(!c || !m) return '분석 전입니다.';
-  return [
-    'Xiaomi 17 Ultra Color Match Report',
-    '===================================',
-    '',
-    `[신뢰도] ${Math.round(c.confidence*100)}%`,
-    `[장면 추정] ${m.sceneTags.join(' / ')}`,
-    `[조명 무드] ${m.lightMood}`,
-    `[주도 색상] ${m.dominantHue}`,
-    '',
-    '[추천 결과]',
-    `- 추천 Leica 스타일: ${c.style}`,
-    `- 추천 필터: ${c.filter}`,
-    `- 추천 렌즈: ${c.cameraSuggestion}`,
-    `- AWB 전략: ${c.awbStrategy}`,
-    '',
-    '[원본 기준]',
-    `- 원본 Leica 스타일: ${base.style}`,
-    `- 원본 필터: ${base.filter}`,
-    '',
-    '[현재 Live Tweak 값]',
-    `- 차가움/따뜻함: ${formatSigned(tweak.warmCool)}`,
-    `- 청록색/자홍색: ${formatSigned(tweak.tint)}`,
-    `- 채도: ${formatSigned(tweak.saturation)}`,
-    `- 대비: ${formatSigned(tweak.contrast)}`,
-    `- 선명도: ${formatSigned(tweak.sharpness)}`,
-    `- EV 보정: ${formatSigned(tweak.exposure,1)}`,
-    '',
-    '[타겟 분석값]',
-    `- 평균 밝기: ${pct(m.avgL)}`,
-    `- 평균 채도: ${pct(m.avgS)}`,
-    `- 명암 대비: ${round(m.contrast,3)}`,
-    `- 다이내믹 레인지 추정: ${pct(m.dynamicRange)}`,
-    `- 색온도 방향: ${m.warmth > 0.03 ? '웜' : m.warmth < -0.03 ? '쿨' : '중립'}`,
-    `- 틴트 방향: ${m.tint > 0.02 ? '그린 성향' : m.tint < -0.02 ? '마젠타 성향' : '중립'}`,
-    '',
-    '[필터 우선순위 Top 5]',
-    ...state.ranking.slice(0,5).map((r,i)=>`- ${i+1}. ${r.filter} :: ${r.reason}`),
-    '',
-    '[판단 메모]',
-    ...c.notes.map(v=>`- ${v}`),
-    '',
-    '[운용 팁]',
-    ...c.tips.map(v=>`- ${v}`)
-  ].join('\n');
-}
+/* Legacy duplicate block removed at line 1132 during cleanup. */
 function renderReport(){ els.reportBox.textContent = buildReport(); }
 
 function setUIMode(mode){
@@ -1242,7 +999,6 @@ async function handleFile(input, type){
 function updateCompareUIFromSlider(){
   state.compare = Number(els.compareSlider.value);
   updateCompareUI();
-  renderBuiltinPresets();
 }
 function resetAll(){
   state.target=null; state.source=null; state.analysis=null; state.ranking=[]; state.selectedCandidate=null; state.aiTopCandidate=null; state.currentPreviewCandidate=null; state.liveAdjustments=null; state.lockedCandidateId=null; state.compare=50;
@@ -1253,44 +1009,127 @@ function resetAll(){
   els.candidateGrid.innerHTML=''; setLockState(null);
   [els.compareBaseCanvas, els.compareAppliedCanvas].forEach(c=>{const ctx=c.getContext('2d'); c.width=c.clientWidth*(window.devicePixelRatio||1); c.height=c.clientHeight*(window.devicePixelRatio||1); ctx.fillStyle='#02060f'; ctx.fillRect(0,0,c.width,c.height);});
   els.previewNote.textContent='아직 샤오미 원본 테스트 이미지가 없습니다. 업로드 후 분석하면 한 화면 비교 프리뷰가 생성됩니다.';
-  els.copyTextBtn.disabled=true; els.copyJsonBtn.disabled=true; els.downloadTxtBtn.disabled=true;
+  els.copyTextBtn.disabled=true; els.copyJsonBtn.disabled=true; els.downloadTxtBtn.disabled=true; els.downloadXiaomiZipBtn.disabled=true;
   updateCompareUI();
   renderBuiltinPresets();
 }
 async function copyText(text){ try{ await navigator.clipboard.writeText(text); }catch{ alert('복사에 실패했습니다. 브라우저 권한을 확인해 주세요.'); } }
 function downloadTextFile(filename,text){ const blob=new Blob([text],{type:'text/plain;charset=utf-8'}), url=URL.createObjectURL(blob), a=document.createElement('a'); a.href=url; a.download=filename; a.click(); URL.revokeObjectURL(url); }
-
-
-function makePresetCandidate(preset){
-  const baseAnalysis = state.analysis;
-  let candidate;
-  if(baseAnalysis){
-    candidate = buildCandidateForFilter(baseAnalysis, preset.style, preset.filter, 0);
-    candidate.sliders = cloneObj(preset.sliders);
-  } else {
-    candidate = {
-      id: uid(),
-      style: preset.style,
-      filter: preset.filter,
-      confidence: preset.match==='높음'?0.84:(preset.match==='중상'?0.74:0.66),
-      cameraSuggestion: '23mm 메인 기본',
-      awbStrategy: 'AWB 유지',
-      sliders: cloneObj(preset.sliders),
-      notes: [],
-      tips: [],
-      warnings: [],
-      summary: {brightness:'중간', saturation:'균형형', contrast:'중간'}
-    };
+function downloadBlobFile(filename, blob){ const url=URL.createObjectURL(blob), a=document.createElement('a'); a.href=url; a.download=filename; a.click(); setTimeout(()=>URL.revokeObjectURL(url), 500); }
+function sanitizeFilename(name='preset'){ return String(name).trim().replace(/[\/:*?"<>|]+/g,'_').replace(/\s+/g,' ').slice(0,80) || 'preset'; }
+function clampInt(v,min,max){ return clamp(Math.round(Number(v)||0), min, max); }
+function formatZipNumber(v,d=0){ const n=cleanNumber(Number(v)||0,d); return Number.isInteger(n) ? String(n) : String(n).replace(/\.0+$/,'').replace(/(\.\d*?)0+$/,'$1'); }
+function getXiaomiZipPresetMeta(){
+  const candidate=getSelectedCandidate();
+  const tweak=getCurrentTweak();
+  if(!candidate) return null;
+  return {
+    contrast: clampInt(tweak.contrast,-24,24),
+    warmCool: clampInt(tweak.warmCool,-28,28),
+    tint: clampInt(tweak.tint,-20,20),
+    saturation: clampInt(tweak.saturation,-24,24),
+    sharpness: clampInt(tweak.sharpness,-10,20),
+    exposure: formatZipNumber(clamp(Number(tweak.exposure)||0,-1.8,1.8),1),
+    style: candidate.style,
+    filter: candidate.filter,
+    name: sanitizeFilename(els.presetName.value || `${candidate.style}_${candidate.filter}`)
+  };
+}
+function buildXiaomiPresetEntryNames(){
+  const meta=getXiaomiZipPresetMeta();
+  if(!meta) return [];
+  return [
+    'p_pref_camera_cv_type_key_1',
+    'p_pref_camera_autoexposure_key_1',
+    'p_pref_qc_camera_exposuretime_key_0',
+    'p_pref_qc_camera_iso_key_0',
+    `p_pref_qc_camera_pro_exposure_value_key_${meta.exposure}`,
+    'p_pref_camera_manually_lens_wide',
+    'p_pref_camera_zoom_retain_key_1.0',
+    'p_pref_camera_whitebalance_key_new_1',
+    'p_pref_focus_position_key_1000',
+    `p_pref_qc_camera_style_tone_key_${meta.contrast}`,
+    `p_pref_qc_camera_style_color_temp_key_${meta.warmCool}`,
+    `p_pref_qc_camera_style_color_tone_key_${meta.tint}`,
+    `p_pref_qc_camera_style_vibrance_key_${meta.saturation}`,
+    `p_pref_qc_camera_style_texture_key_${meta.sharpness}`,
+    'p_pref_camera_raw_key_JPEG',
+    'p_pref_ultra_pixel_167_OFF',
+    't',
+    'v_3',
+    'ac'
+  ];
+}
+let __zipCrcTable = null;
+function getZipCrcTable(){
+  if(__zipCrcTable) return __zipCrcTable;
+  __zipCrcTable = new Uint32Array(256);
+  for(let i=0;i<256;i++){
+    let c=i;
+    for(let k=0;k<8;k++) c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1);
+    __zipCrcTable[i]=c>>>0;
   }
-  candidate.id = `builtin-${preset.id}`;
-  candidate.cameraSuggestion = candidate.cameraSuggestion || '23mm 메인 기본';
-  candidate.awbStrategy = candidate.awbStrategy || 'AWB 유지';
-  candidate.notes = [...(candidate.notes||[]), `${preset.group} 계열의 대표 색 성향을 샤오미 17 울트라 기준으로 매핑한 프리셋입니다.`, preset.description, `재현성 평가: ${preset.match}. ${preset.compare}`];
-  candidate.tips = [...(candidate.tips||[]), `현재 프리셋 원형: ${preset.sourceTone}`, '완전 복제보다 방향성 매칭 프리셋으로 보는 것이 좋습니다.'];
-  candidate.builtinMeta = preset;
-  return candidate;
+  return __zipCrcTable;
+}
+function crc32(bytes){
+  const table=getZipCrcTable();
+  let crc=0xFFFFFFFF;
+  for(let i=0;i<bytes.length;i++) crc = table[(crc ^ bytes[i]) & 0xFF] ^ (crc >>> 8);
+  return (crc ^ 0xFFFFFFFF) >>> 0;
+}
+function u16LE(v){ const arr=new Uint8Array(2); new DataView(arr.buffer).setUint16(0,v,true); return arr; }
+function u32LE(v){ const arr=new Uint8Array(4); new DataView(arr.buffer).setUint32(0,v>>>0,true); return arr; }
+function concatBytes(parts){
+  const total=parts.reduce((sum,p)=>sum+p.length,0);
+  const out=new Uint8Array(total);
+  let offset=0;
+  for(const p of parts){ out.set(p, offset); offset += p.length; }
+  return out;
+}
+function createStoredZipBlob(entries){
+  const encoder=new TextEncoder();
+  const localParts=[];
+  const centralParts=[];
+  let offset=0;
+  for(const entry of entries){
+    const nameBytes=encoder.encode(entry.name);
+    const dataBytes=entry.data instanceof Uint8Array ? entry.data : encoder.encode(entry.data || '');
+    const crc=crc32(dataBytes);
+    const local=concatBytes([
+      u32LE(0x04034b50), u16LE(20), u16LE(0), u16LE(0), u16LE(0), u16LE(0),
+      u32LE(crc), u32LE(dataBytes.length), u32LE(dataBytes.length),
+      u16LE(nameBytes.length), u16LE(0), nameBytes, dataBytes
+    ]);
+    localParts.push(local);
+    const central=concatBytes([
+      u32LE(0x02014b50), u16LE(20), u16LE(20), u16LE(0), u16LE(0), u16LE(0), u16LE(0),
+      u32LE(crc), u32LE(dataBytes.length), u32LE(dataBytes.length),
+      u16LE(nameBytes.length), u16LE(0), u16LE(0), u16LE(0), u16LE(0), u32LE(0), u32LE(offset),
+      nameBytes
+    ]);
+    centralParts.push(central);
+    offset += local.length;
+  }
+  const centralSize=centralParts.reduce((sum,p)=>sum+p.length,0);
+  const centralOffset=offset;
+  const endRecord=concatBytes([
+    u32LE(0x06054b50), u16LE(0), u16LE(0), u16LE(entries.length), u16LE(entries.length),
+    u32LE(centralSize), u32LE(centralOffset), u16LE(0)
+  ]);
+  return new Blob([...localParts, ...centralParts, endRecord], {type:'application/zip'});
+}
+function exportCurrentAsXiaomiZip(){
+  const meta=getXiaomiZipPresetMeta();
+  if(!meta){ alert('먼저 이미지를 분석하거나 프리셋을 선택해 주세요.'); return; }
+  const entryNames=buildXiaomiPresetEntryNames();
+  const zipBlob=createStoredZipBlob(entryNames.map(name=>({name, data:new Uint8Array(0)})));
+  const stamp=new Date().toISOString().replace(/[-:TZ.]/g,'').slice(0,14);
+  const filename=`max_${stamp}_${meta.name}.zip`;
+  downloadBlobFile(filename, zipBlob);
 }
 
+
+/* Legacy duplicate block removed at line 1276 during cleanup. */
 function applyBuiltinPreset(id){
   const preset = BUILTIN_PRESETS.find(p=>p.id===id);
   if(!preset) return;
@@ -1314,13 +1153,13 @@ function renderBuiltinPresets(){
     return `<div class="preset-item" style="${active?'border-color:var(--brand); box-shadow:0 0 0 2px rgba(121,215,255,.14) inset;':''}">
       <div class="preset-head">
         <div>
-          <div class="preset-name">${p.name}</div>
-          <div class="preset-meta">${p.group} · ${p.style} / ${p.filter} · 재현성 ${p.match}</div>
+          <div class="preset-name">${escapeHTML(p.name)}</div>
+          <div class="preset-meta">${escapeHTML(p.group)} · ${escapeHTML(p.style)} / ${escapeHTML(p.filter)} · 재현성 ${escapeHTML(p.match)}</div>
         </div>
       </div>
-      <div class="tiny" style="margin-top:8px; line-height:1.6">${p.description}</div>
-      <div class="tiny" style="margin-top:8px; line-height:1.6"><b>원형 특징:</b> ${p.sourceTone}</div>
-      <div class="tiny" style="margin-top:8px; line-height:1.6"><b>샤오미 비교:</b> ${p.compare}</div>
+      <div class="tiny" style="margin-top:8px; line-height:1.6">${escapeHTML(p.description)}</div>
+      <div class="tiny" style="margin-top:8px; line-height:1.6"><b>원형 특징:</b> ${escapeHTML(p.sourceTone)}</div>
+      <div class="tiny" style="margin-top:8px; line-height:1.6"><b>샤오미 비교:</b> ${escapeHTML(p.compare)}</div>
       <div class="preset-actions">
         <button class="secondary" data-builtin-load="${p.id}">현재 선택안으로 적용</button>
       </div>
@@ -1360,9 +1199,9 @@ function renderPresets(){
   els.presetList.innerHTML=list.sort((a,b)=>(b.favorite-a.favorite)||b.createdAt.localeCompare(a.createdAt)).map(p=>`
     <div class="preset-item">
       <div class="preset-head">
-        <div><div class="preset-name">${p.favorite?'★ ':''}${p.name}</div><div class="preset-meta">${p.style} / ${p.filter} · ${p.base.style} / ${p.base.filter} · ${new Date(p.createdAt).toLocaleString('ko-KR')}</div></div>
+        <div><div class="preset-name">${p.favorite?'★ ':''}${escapeHTML(p.name)}</div><div class="preset-meta">${escapeHTML(p.style)} / ${escapeHTML(p.filter)} · ${escapeHTML(p.base.style)} / ${escapeHTML(p.base.filter)} · ${new Date(p.createdAt).toLocaleString('ko-KR')}</div></div>
       </div>
-      ${p.memo?`<div class="tiny" style="margin-top:8px">${p.memo}</div>`:''}
+      ${p.memo?`<div class="tiny" style="margin-top:8px">${escapeHTML(p.memo)}</div>`:''}
       <div class="preset-actions">
         <button class="secondary" data-load="${p.id}">불러오기</button>
         <button class="secondary" data-fav="${p.id}">${p.favorite?'즐겨찾기 해제':'즐겨찾기'}</button>
@@ -1405,6 +1244,7 @@ function bindEvents(){
   els.copyTextBtn.addEventListener('click', ()=>copyText(buildReport()));
   els.copyJsonBtn.addEventListener('click', ()=>copyText(JSON.stringify({analysis:state.analysis, selected:getSelectedCandidate(), tweak:getCurrentTweak(), ranking:state.ranking},null,2)));
   els.downloadTxtBtn.addEventListener('click', ()=>downloadTextFile('xiaomi17ultra_color_match_report.txt', buildReport()));
+  els.downloadXiaomiZipBtn.addEventListener('click', exportCurrentAsXiaomiZip);
   els.simpleModeBtn.addEventListener('click', ()=>setUIMode('simple'));
   els.proModeBtn.addEventListener('click', ()=>setUIMode('pro'));
   [els.baselineStyle, els.baselineFilter].forEach(el=>el.addEventListener('change', ()=>{ renderCurrentSelection(); refreshComparePreview(); }));
@@ -1423,7 +1263,6 @@ function bindEvents(){
 
 
 // ===== Patch v2 : Xiaomi + ZEISS + Fujifilm look engine =====
-els.familyBias = document.getElementById('familyBias');
 
 BUILTIN_PRESETS.push(
   {
@@ -1842,6 +1681,10 @@ function makePresetCandidate(preset){
 function renderCurrentSelection(){
   const candidate=getSelectedCandidate();
   if(!candidate) return;
+  els.copyTextBtn.disabled=false;
+  els.copyJsonBtn.disabled=false;
+  els.downloadTxtBtn.disabled=false;
+  els.downloadXiaomiZipBtn.disabled=false;
   els.modeChips.innerHTML=[
     `<div class="chip">${candidate.style}</div>`,
     `<div class="chip">${candidate.filter}</div>`,
